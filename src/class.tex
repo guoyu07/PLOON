@@ -310,6 +310,69 @@ enum suits { Heart, Club, Diamond, Spade };
 \end{lstlisting}
 
 
+对于类是面向对象编程最基本的概念的思想，一些语言中在其之上进行了一些改变。
+
+Oberon语言中对于类只有比较传统的数据记录的概念。尽管如此，它还是支持消息传递以及面向对象思想中才有的对方法进行动态绑定的功能。
+
+Oberon语言中的方法不是在记录内定义的，而是使用特殊的语法来声明方法，在参数列表中，使用一个与其他参数位置分离的参数来描述接收器。通常要求接收器是指针类型，而不是数据记录类型。
+
+\begin{lstlisting}[language=Oberon-2]
+TYPE
+	PlayingCard = POINTER TO PlayingCardDesc;
+		
+	PlayingCardDesc = RECORD
+		suit : INTEGER
+		rank : INTEGER
+		faceUp : BOOLEAN
+	END
+PROCEDUER (aCard : PlayingCard) setFaceUp (b : BOOLEAN)
+BEGIN
+	aCard.faceUp = b;
+END
+\end{lstlisting}
+
+
+记录PlayingCardDesc包括数据字段，可以通过过程setFaceUp来修改数据字段，而过程setFaceUp作为接收器，必须得到关于纸牌的指针。
+
+
+\begin{lstlisting}[language=Oberon-2]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=Oberon-2]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=Oberon-2]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=Oberon-2]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=Oberon-2]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=Oberon-2]
+
+\end{lstlisting}
 
 \subsection{C++}
 
@@ -519,7 +582,7 @@ Smalltalk语言并没有广泛地遵循以单词get开始的命名约定。通�
 \section{Declaration}
 
 
-一般说来，并不指定在类定义中方法的声明次序，只是次序对代码的可读性有很大的影响。
+一般说来，并不指定在类定义中方法的声明次序，不过次序对代码的可读性有很大的影响。
 
 \begin{compactitem}
 \item 在类定义中，首先列出一些主要的特征，一些次要的特征列在后面。
@@ -532,92 +595,234 @@ Smalltalk语言并没有广泛地遵循以单词get开始的命名约定。通�
 
 \section{Constant}
 
-一些编程语言提供了一种方式来作为存取器方法的一种替代，可以指定一个数据字段是变的或者是不可变的。
+一些编程语言提供了一种方式来作为存取器方法的一种替代，可以指定一个数据字段是可变的或者是不可变的，从而意味着如果设定了数据字段的值，就不能再改变它，就没有必要通过方法来隐藏对数据值的存取。
+
+
+下面描述了关于定义常量的不同方式。例如，在Java中是用final来声明常量的，在C++中则使用修饰符const来实现。
 
 
 \begin{lstlisting}[language=C++]
+// C++
+class PlayingCard{
+public:
+	...
+	const int rank; // since immutable, can allow public access to data field.
+	const Suits suit;
+};
+\end{lstlisting}
 
+
+\begin{lstlisting}[language=Java]
+// Java
+class PlayingCard{
+	...
+	public final int rank;
+	public final Suits suit;
+}
+\end{lstlisting}
+
+
+常量（或者称为不可变数据字段）直观地说明了在程序执行过程中不能改变其值的数据字段。
+
+
+\section{Isolation}
+
+Java和C\#等都是把方法的主体直接放在类定义中，而C++和Object Pascal等语言则是将这两方面分离开来。
+
+在C++语言中可以自由选择，小规模的方法可以在类内部定义，大规模的方法可以在类外部定义。例如，一个关于纸牌抽象的C++类定义如下所示：
+
+\begin{lstlisting}[language=C++]
+// C++ 
+class PlayingCard{
+public:
+	enum Suits { Spade, Diamond, Club, Heart };
+	enum Colors { Red, Black };
+	// constructor, initialize new playing card
+	PlayingCard(Suits is, int ir){
+		suit = is;
+		rank = ir;
+		faceUp = true;
+	}
+	// operations on a playing card
+	boolean isFaceUp(){ // bool
+		return faceUp;
+	}
+	void setFaceUp(bool up){
+		faceUp = up;
+	}
+	void flip(){
+		setFaceUp(!faceUp);
+	}
+	int rank(){
+		return rankValue;
+	}
+	Suits suit(){
+		return suitValue;
+	}
+	
+	Colors color();
+
+private: // private data values
+	Suits suitValue;
+	int rankValue;
+	boolean faceUp; // bool
+};
+\end{lstlisting}
+
+注意，这里忽略了方法color的实现主体，因为它的实现代码比在类中所定义的其他方法都要长。随后的方法定义（又称为函数成员，function member）提供了函数的主体。
+
+
+\begin{lstlisting}[language=C++]
+// C++
+PlayingCard::Colors PlayingCard::color(){
+	// return the face color of a playing card
+	if((suit == Diamond) || (suit == Heart))
+		return Red;
+	return Black;
+}
+\end{lstlisting}
+
+方法标题定义的格式和通常的C语言函数定义十分类似，只是名称已经扩展成为一个全限定（fully qualified）名，而且这种受限定的名称由类的名称和定义的方法名称组成，如同一个人是由姓和名来确定的一样（例如“Jim Green”）。
+
+C++程序员既可以将方法作为类定义的一部分，定义成内联（in-line）方法，也可以将方法定义成程序的一个独立的部分。
+
+一般情况下，把只有一到两个语句的方法定义成内联方法，把多于两行的复杂语句定义在类的外部。
+
+
+
+把方法体放在类定义之外有两个原因。首先，多余一条语句的方法体会使类定义的其他特征变得模糊，因此移开代码比较长的方法体可以改善程序的可读性。只是，可读性是针对观察者的，而不是所有的用户都认为这种分离可以提高程序的可读性，因为这样做之后，用户就必须到两个不同的地方去查找方法的主体。第二个原因涉及到语义。当方法体在一个类定义内部被声明时，C++编译器就可以直接将其作为内联方法进行扩展，而无需建立函数调用。这样，内联方法比函数调用和方法体的结合形式执行起来更加快速。
+
+
+在C++语言程序中，通常不会在同一个文件中同时出现类定义和较大的方法体。
+
+\begin{compactitem}
+\item 类声明一般会在接口文件（interface file）中给出（按照惯例，在UNIX系统中是扩展名为.h的文件，在Windows系统中是扩展名为.hpp的文件）。
+\item 函数体位于实现文件中（按照惯例，是扩展名为.cpp或.C的文件）。
+\end{compactitem}
+
+Objective-C语言也把类定义和类实现分离开来。其中，类定义包括关于类的方法的描述，它们通过符号“+”或者“-”来指示，随后紧接着位于括号之内的返回类型，返回类型之后是方法的描述。
+
+\begin{lstlisting}[language={[Objective]C}]
+@ interface PlayingCard : Object
+{
+	int suit;
+	int rank;
+	int faceUp;
+}
+	
++ suit: (int) s rank: (int) i
+- (int) color;
+- (int) rank;
+- (int) suit;
+- (int) isFaceUp;
+- (void) flip;
+@ end
+\end{lstlisting}
+
+
+关于方法体的实现代码如下：
+
+
+
+\begin{lstlisting}[language={[Objective]C}]
+@ implementation PlayingCard
+	
+- (int) color
+{
+	if((suit == Diamond)||(suit == Heart))
+		return Red;
+	return Black;
+}
+- (int) rank
+{
+	return rank;
+}
+... ./* other method bodies */
+@ end
 \end{lstlisting}
 
 
 
+Object Pascal和Delphi语言分离类定义和方法函数体的方式很相似，分离的这两个部分都是保存在同一个文件中。类定义描述位于以interface为标识的部分，而具体实现代码位于以implementation为标识的部分。例如，下面就是一个Delphi语言的示例。
 
 
 \begin{lstlisting}[language=C++]
+interface
+type
+	Suits = (Heart,Club,Diamond,Spade);
+	Colors = (Red,Black);
+	
+	TPlayingCard = class (TObject)
+		public
+			constructor Create (r : integer; s : Suits);
+			function color : Colors;
+			function isFaceUp : boolean;
+			procedure flip;
+			function rank : integer;
+			function suit : Suits;
+		private
+			suit : Suits;
+			rank : integer;
+			faceUp : boolean;
+	end;	
+implementation
+	function TPlayingCard.color : Colors;
+	begin
+		case suit of
+			Diamond: color := Red;	
+			Heart: color := Red;
+			Spade: color := Black;
+			Club: color := Black;
+	end
 
+...(* other methods similarly defined *)
+end;
 \end{lstlisting}
 
 
 
+在Pascal语言中的全限定名是通过在类名和方法名之间使用句点分隔而成，C++语言则是使用冒号来进行分隔。
+
+CLOS语言在进行类定义时，可以通过使用“:accessor”关键字和位于其后的存取器函数名，自动地创建存取函数。
 
 
-
-\begin{lstlisting}[language=C++]
-
+\begin{lstlisting}[language=Lisp]
+// CLOS
+(defclass PlayingCard()
+	((rank :accessor getRank) (suit :accessor getSuit) ))
 \end{lstlisting}
 
+其他的方法是使用函数defmethod来定义的，而且方法的接收器以一个显式参数来命名，这一点和Java以及C++语言是不同的。
 
 
 
 
 
-\begin{lstlisting}[language=C++]
-
+\begin{lstlisting}[language=Lisp]
+// CLOS
+(defmethod color((card PlayingCard))
+	(cond
+		((eq (getSuit card) ‘Diamond) ‘Red)
+		((eq (getSuit card) ‘Heart) ‘Red)
+		(t 'Black)))
 \end{lstlisting}
 
+在Python语言中，接收器也必须以显示参数命名。
 
 
 
 
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
+\begin{lstlisting}[language=Python]
+class PlayingCard:
+def __init__(self, s, r):
+	self.suit = s
+	self.r = r
+def rank(self):
+	return self.rank
+def color(self):
+	if self.suit == 1 or self.suit == 2:
+		return 1
+	return 0
 \end{lstlisting}
 
 
