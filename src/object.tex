@@ -1,0 +1,460 @@
+\part{Object}
+
+
+\chapter{Introduction}
+
+
+\section{Overview}
+
+在面向对象（Object Oriented）编程中，对象（object）既表示客观世界问题空间（Namespace）中的某个具体的事物，又表示软件系统解空间中的基本元素。
+
+在面向对象（Object Oriented）的软件中，对象（Object）是某一个类（Class）的实例（Instance），每个对象都具有唯一的标识符，并包括属性（Properties）和方法（Methods）。
+
+\begin{compactitem}
+\item 属性就是需要记忆的信息；
+\item 方法就是对象能够提供的服务。
+\end{compactitem}
+
+\section{Class Instantiation}
+
+
+在大多数传统编程语言中，变量是通过声明语句来创建的，并且允许用户把变量声明和初始化结合起来。例如，如下所示就是一个Java语言的例子：
+
+
+\begin{lstlisting}[language=Java]
+int sum = 0.0; //declare and initialize variable with zero
+\end{lstlisting}
+
+在一个函数或过程中声明的变量，通常只存在于过程的执行期间。对于面向对象语言也是这样，例如，在C++语言创建变量可以通过下面的声明语句实现：
+
+
+
+\begin{lstlisting}[language=Java]
+PlayingCard aCard(Diamond,4); //create 4 of diamonds
+\end{lstlisting}
+
+大多数面向对象语言都把变量的命名过程和对象的创建过程分离开来，变量的声明只是创建一个标识变量的名称。
+
+为了创建对象，必须执行另外的操作，通常这一操作是由new操作符来表示，下面是关于Smalltalk语言的一个例子。
+
+\begin{lstlisting}[language=Java]
+| aCard | " name a new variable named aCard "
+aCard<-PlayingCard new. " allocate memory space to variable "
+\end{lstlisting}
+
+Python语言并没有直接使用new操作符。相反，当一个函数使用这个类名时，将创建这个类的对象。
+
+
+
+\begin{lstlisting}[language=Java]
+// C++
+PlayingCard *aCard = new PlayingCard(Diamond, 3);
+// Java, C#
+PlayingCard aCard = new PlayingCard(Diamond, 3);
+// Object Pascal
+var
+	aCard : '$\uparrow$' PlayingCard;
+begin
+	new (aCard);
+	...
+end
+// Objective-C
+aCard = [ PlayingCard new ];
+// Python
+aCard = PlayingCard(2,3);
+// Ruby
+aCard = PlayingCard.new
+// SmallTalk
+aCard<-PlayingCard new.
+\end{lstlisting}
+
+
+\section{Object Array}
+
+
+对象数组的创建涉及两个层次的问题，一是数组自身的分配和创建，然后是数组所包含的对象的分配和创建。
+
+在C++语言中，这些特征是结合在一起的。数组由对象组成，而每个对象则使用缺省（即无参数）构造函数来进行初始化。
+
+
+
+\begin{lstlisting}[language=C++]
+// create an array of 52 cards, all the same
+PlayingCard cardArray[52];
+\end{lstlisting}
+
+在Java语言中，表面上看来相似的语句却有着完全不同的效果。其中，用来创建数组的new操作符只能用来创建数组。数组包含的每个元素必须独立创建，典型的办法是通过循环来实现，如下所示：
+
+
+
+\begin{lstlisting}[language=Java]
+PlayingCard cardArray[] = new PlayingCard[13];
+for(int i=0; i<13; i++){
+	cardArray[i] = new PlayingCard(Spade, i+1);
+}
+\end{lstlisting}
+
+
+从C/C++编程转向Java编程时，不能忘记把Java语言中数组的分配与数组所包含的元素的分配分离开来。
+
+
+\section{Object Pointer}
+
+所有面向对象语言在它们的底层表示中都使用指针，但不是所有的面向对象编程语言都把这种指针暴露给用户，因此“Java没有指针”更确切的说法应该是Java语言没有用户可以看到的指针。
+
+事实上，所有的对象引用实际上就是存在于内部表示中的指针。
+
+首先，指针通常引用堆分配（heap allocated）的内存，因此不符合传统的命令式语言中的与变量相关的通用规则。
+
+\begin{compactitem}
+\item 对于命令式语言，在一个过程中创建的变量值会随着过程的活动而存在，当从一个过程返回时，变量值也会随之消失。
+\item 对于堆分配的变量值，只要存在对它的引用，就会一直存在，因此变量值的生存期一般长于创建该变量过程的生存期。
+\end{compactitem}
+
+其次，通过堆分配的内存必须通过某种方式进行回收，这将涉及到面向对象编程语言的垃圾内存机制。
+
+最后，对于某些语言（特别是C++），指针值和传统的变量值是有区别的。
+
+在C++语言中，对于以通常方式声明的变量，即所谓的自动（automatic）变量，其生存期总是绑定在创建该变量的函数上。当退出过程时，变量的内存就会被回收。
+
+\begin{lstlisting}[language=C++]
+void exampleProcedure{
+	PlayingCard ace(Diamond, 1);
+	...
+	// memory is recovered for ace
+	// at end of execution of the procedure
+}
+\end{lstlisting}
+
+
+赋值给指针（或者是引用，指针的另一种形式）的数值没有绑定到过程入口，这样的变量与自动变量有很多重要的区别，用户必须显式地回收关于这些数值的内存。
+
+在面向对象编程的继承机制中，这样的变量值在使用继承特征时与自动变量也有所不同。
+
+\begin{compactitem}
+\item 使用自动内存分配的对象的生存期伴随着声明该对象的过程。
+\item 基于堆的内存需要显式分配，也就是通过大多数面向对象编程语言中的new操作符，并且需要显式地释放或者通过垃圾回收系统进行回收。
+\end{compactitem}
+
+\section{Garbage Collection}
+
+使用操作符new创建的内存称为基于堆（heap-based）的内存，或者简称为堆（heap）内存。
+
+与普通的变量不同的是，基于堆的内存没有绑定在过程的入口或出口处，而内存相对来说还是有限的，因此必须提供某种机制来回收内存空间，这样才可以对已经分配给某个对象的内存空间进行再次使用来满足后续的内存请求。
+
+通常有两种方法可以完成内存回收任务，其中C++、Delphi Pascal等语言中建议在程序中显式指定不再使用某个对象值，将对象所使用的内存回收并再次使用。
+
+为实现这一目的所使用的关键字根据语言的不同而不同，在Object Pascal中，使用关键字free。
+
+\begin{lstlisting}[language=Pascal]
+free aCard;
+\end{lstlisting}
+
+Objective-C语言使用同样的关键字来回收内存，但是却写成消息的形式，接收器位于最前面。
+
+
+\begin{lstlisting}[language={[Objective]C}]
+[ aCard free];
+\end{lstlisting}
+
+
+在C++语言中，回收内存的关键字是delete。
+
+
+\begin{lstlisting}[language=Java]
+delete aCard;
+\end{lstlisting}
+
+当删除一个数组时，delete关键字后面要紧接着一对方括号。
+
+
+
+\begin{lstlisting}[language=Java]
+delete[] cardArray;
+\end{lstlisting}
+
+
+作为显式管理内存的替代，另外一种回收内存的办法是垃圾回收机制，使用垃圾回收机制的语言（包括Java、C\#、Smalltalk或CLOS语言等）需要时刻监控对象的操作，当对象不再使用时，自动回收对象所占用的内存。
+
+通常情况下，垃圾回收系统直到系统内存快要耗尽的时候才开始工作，在回收无用的内存时，需要将正在执行的应用程序挂起，回收完成后程序恢复执行。
+
+垃圾回收机制需要一定的执行时间，因此与显式管理内存要求自己控制释放内存相比，要付出额外的代价，但是垃圾回收机制同时也避免了许多经常出现的编程错误。
+
+\begin{compactitem}
+\item 对于一个程序，如果忘记释放不再使用的内存一般是不会耗尽内存的。
+
+
+\item 内存被显式地释放后，程序员不能再直接使用，否则会产生不可预料的结果。
+
+
+\begin{lstlisting}[language=C++]
+PlayingCard *aCard = new PlayingCard(Spade, 1);
+...
+delete aCard;
+...
+cout << aCard.rank(); // attempt to use after deletion
+\end{lstlisting}
+
+\item 释放的内存可以被重新使用，内容会随之被重写，因此可能会存入不同的值。
+
+\item 同一内存不能被显式释放多次，这样做也会导致不可预料的结果。
+
+\begin{lstlisting}[language=C++]
+PlayingCard *aCard = new PlayingCard(Spade, 1);
+...
+delete aCard;
+...
+delete aCard; // deleting an already deleted value
+\end{lstlisting}
+
+\end{compactitem}
+
+当垃圾回收系统无法使用时，为了避免这些问题，通常有必要确保每一块动态分配的内存对象都有一个指定的属主（owner）。内存的属主负责保证内存位置的合理使用，以及当内存不再使用时得以释放。在大型程序中，如同现实生活一样，难点之一就是争夺共享资源的所有权。
+
+当一个对象不能指定为共享资源的属主时，通常可以使用的另外一项技术是引用计数（reference counting）。引用计数就是引用共享对象的指针的计数值，这需要认真地确保计数的准确。
+
+无论何时，只要加入一个新指针，引用计数值就会加1，只要取消一个指针，计数值就会减1。当计数值达到0时，就意味着没有指针引用该对象，它的内存可以被回收。
+
+支持垃圾回收以提高编程效率和反对垃圾回收以提高编程灵活性是一对矛盾，自动垃圾回收的代价是高昂的，因为它要求必须有一个运行时系统来管理内存。另一方面，内存使用错误的成本同样也是相当高昂的。
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}

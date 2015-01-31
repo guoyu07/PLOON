@@ -1,3 +1,105 @@
 \part{Interface}
 
 
+
+
+\chapter{Introduction}
+
+接口泛指实体把自己提供给外界的一种抽象化物（可以为另一实体），用以由内部操作分离出外部沟通方法，使其能被修改内部而不影响外界其他实体与其互动的方式。例如，面向对象程序设计通过接口来多重抽象，从而对组件的功能进行合理的抽象。
+
+实际上，程序组件的接口会被存取到的事物的种类可以包括常量、公共变量、数据类型、过程类型、异常和方法签名等。
+
+接口与其实现是分离的，其他组件只能通过接口来进行交互，从而替换接口的实现不会影响接口的用户。
+
+\begin{quote}
+\emph{在面向对象的程序设计中，里氏替换原则（Liskov Substitution principle）是对子类型的特别定义，其内容可以描述为： 派生类（子类）对象能够替换其基类（超类）对象被使用。\footnote{Barbara Liskov与Jeannette Wing在1994年发表论文并提出Liskov代换原则：\newline Let $q(x)$ be a property provable about objects $x$ of type $T$. Then $q(y)$ should be true for objects y of type $S$ where $S$ is a subtype of $T$.}}
+\end{quote}
+
+在面向对象编程中，接口通常定义为一些方法的集合，对对象的属性的访问通常通过属性存取函数来进行。
+
+
+接口投入使用之后就不应该被修改。如果接口的实现模块提供了新的功能，而想在其他模块中调用这个功能，那么需要定义新的部份而不是修改现存的接口。
+
+尽管接口的定义没有强制的标准，但是一些标准的COM接口的应用十分广泛，例如IUnknown和IDispatch。
+
+在面向对象程式设计中，一些支持动态语言的模块实现了IDispatch来支持在运行时“发现”对象提供的函数、方法和事件（通常称为自动化），但是这个通过IDispatch来做代理的方法使得程式性能有所降低。
+
+
+
+\section{Overview}
+
+
+
+接口是为某种行为定义了一份协议，但是不提供任何实现。下面就是一个接口的例子，描述了对象可以从输入/输出流中进行读取和写入操作。
+
+
+
+\begin{lstlisting}[language=Java]
+public interface Storing{
+	void writeOut(Stream s);
+	void readFrom(Stream s);
+}
+\end{lstlisting}
+
+类和接口都定义了一种新类型，这意味着可以仅仅通过接口的名称来声明变量。
+
+
+\begin{lstlisting}[language=Java]
+Storing storableValue;
+\end{lstlisting}
+
+类可以表明它将要实现哪些接口定义的协议，而且类的实例可以赋值给接口类型变量。
+
+
+\begin{lstlisting}[language=Java]
+public class BitImage implements Storing{
+	void writeOut(Stream s){
+	//...
+	}
+	void readFrom(Stream s){
+	//...
+	}
+}
+storableValue = new BitImage();
+\end{lstlisting}
+
+接口的使用和继承的概念十分相似，但是接口只描述行为，不提供具体实现。
+
+从某种程度上来说，接口是一种近似于类的实体，因此Java和C++中的接口的概念和类的概念是密切相关的。
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+\subsection{C++}
+
+
+
+
+
+\subsection{Java}
+
+
+
+

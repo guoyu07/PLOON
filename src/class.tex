@@ -106,7 +106,28 @@
 
 \chapter{Definition}
 
+根据语言是动态类型还是静态类型，可以把语言分为两类。
 
+一般来说，静态类型语言中类型和变量有关（这种绑定通常是通过声明语句来建立的），在动态类型语言中只是把变量看作名称标识，类型和值有关。
+
+\begin{compactitem}
+\item Java、C++、C\#和Pascal语言是静态类型语言；
+\item Smalltalk、CLOS和Python语言是动态语言类型；
+\item Objective-C语言介于这两种类型语言之间。
+\end{compactitem}
+
+在Objective-C语言中，如果变量是静态类型，则变量可以用一个固定类型来声明。另一方面，变量也可以使用对象类型id来声明。通过这种方式声明的变量可以表示任何值，因此这种变量是动态类型。
+
+\begin{lstlisting}[language=bash]
+PlayingCard aCard;	/* a statically typed veriable */
+id anotherCard;		/* a dynamically typed veriable */
+\end{lstlisting}
+
+在消息传递方面，静态类型语言和动态类型语言之间存在显著的差异。
+
+一方面，静态类型语言在编译时使用接收器的类型来检查选择器，以确定它所接收的消息。
+
+另一方面，动态类型语言在编译时则没有办法去核实这一消息，因此在动态类型语言中如果接收器不理解消息选择器，消息就可能产生运行时错误，静态类型语言就从来不会发生这种运行时错误。
 
 \section{Overview}
 
@@ -383,6 +404,7 @@ END
 
 
 
+\subsection{C\#}
 
 
 \subsection{Python}
@@ -444,6 +466,236 @@ end
 }
 \end{lstlisting}
 
+
+
+
+
+\section{Forward Definition}
+
+在实践中，有时需要两个或者更多的互相引用的类，这种形式称为相互递归（mutual recursion）。例如，在表示马和马车的关系时，每一匹马需要和自己的马车联系在一起，每一辆马车又需要有一匹马。
+
+很多语言都支持相互递归，例如Java语言在生成代码之前会扫描整个文件，这样如果程序文件的前面部分引用在文件后面声明的类，就不会产生任何冲突。
+
+其他的语言（例如C++）会从前到后地依次处理程序文件中的类和方法，因此名称在使用之前必须至少进行部分定义。
+
+
+在C++语言中必须实现向前定义（forward definition），其目的只是把这个名称置于循环中，关于定义的实现会在后面完成，这样马和马车的例子可能需要进行一定的修改。
+
+\begin{lstlisting}[language=C++]
+class Horse; // forward definition
+
+class Buggy{
+	...
+	Horse * myHorse;
+};
+
+class Horse{
+	...
+	Buggy* myBuggy;
+};
+\end{lstlisting}
+
+这里，首行仅仅表明Horse是一个类的名称，定义即将在后面出现。
+
+对于C++编译器来说，只需知道前向定义的相关信息才能允许创建指向未知类的指针。当然，在读取类定义之前，对象不能做任何事情。
+
+要解决这种问题，需要对类定义和与其相关的方法的实现仔细地排序：首先是第一个类的定义，然后是第二个类的定义，紧接着是第一个类的方法，最后是第二个类的方法。
+
+\section{Nested Class}
+
+Java和C++中都允许在一个类中定义另外一个类，在Java中称其为内部类，在C++中则称为嵌套类。
+
+
+尽管上述这两个概念有相似的表现，但它们之间也有很大的语义区别。
+
+在Java中，内部类被链接到与其相关的外部类的一个具体实例上（内部类就创建在这个外部类实例中），并且允许存取这一对象的数据字段和方法。
+
+在C++中，嵌套类只是一种简单的命名手段，它限制了和内部类相关的特征的可视性，除此之外，两者再没有其他关系。
+
+为了说明嵌套类的作用，假设想要用Java语言来写一个双向链表的抽象，可能决定把Link类放在List抽象中。
+
+
+
+\begin{lstlisting}[language=Java]
+// Java List Class
+class List{
+	private Link firstElement = null;
+	public void push_front(Object val){
+		if(firstElement == null)
+			firstElement = new Link(val, null, null);
+		else
+			firstElement.addBefore(val);
+	}
+	... // other methods omitted 
+	private class Link{ // inner class definition
+		public Object value;
+		public Link forwardLink;
+		public Link backwardLink;
+		public Link(Object v, Link f, Link b){
+			value = v;
+			forwardLink = f;
+			backwardLink = b;
+		}
+		public void addBefore(Object val){
+			Link newLink = new Link(val, this, backwardLink);
+			if(backwardLink == null){
+				firstElement = newLink;
+			}else{
+				backwardLink.forwardLink = newLink;
+				backwardLink = newLink;
+			}
+		}
+		... // other methods omitted
+	}
+}
+\end{lstlisting}
+
+注意，方法addBefore()引用数据字段firstElement的目的是为了处理这种一种特殊情况，就是将一个元素插入到链表的头部。
+
+如果将上述代码直接转换成C++语言来表示，就会产生如下的结果。
+
+
+\begin{lstlisting}[language=C++]
+// C++ List Class
+class List {
+private:
+	class Link; // forward definition
+	Link *firstElement;
+	
+	class Link { // nested class definition
+	public:
+		int value;
+		Link *forwardLink;
+		Link *backwardLink;
+		
+		Link(int v, Link *f, Link *b){
+			value = v;
+			forwardLink = f;
+			backwardLink = b;
+		}
+		
+		void addBefore(int val){
+			Link *newLink = new Link(val,  this, backwardLink);
+			if(backwardLink == 0){
+				firstElement = newLink; // Error!
+			}else{
+				backwardLink->forwardLink = newLink;
+				backwardLink = newLink;
+			}
+		}
+		... // other methods omitted
+	};
+	
+public:
+	void push_front(int val){
+		if(firstElement == 0){
+			firstElement = newLink (val, 0, 0);
+		}else{
+			firstElement->addBefore(val);
+		}
+	}
+	... // other methods omitted
+};
+\end{lstlisting}
+
+
+在上面示例代码中，正是由于Link类的向前引用，才使得在定义Link类之前，就可以声明关于Link类的指针firstElement。
+
+C++语言也使用数值0来表示空元素，而不是通过伪常量null来表示空元素。对Link的使用是通过指针，而不是数值，因此必须进行指针的存取操作。但是，对代码行的注释信息显示了相应的出错代码。
+
+内部类的范围实际上没有嵌套于外部类，因此Link类禁止存取变量firstElement。为了存取List对象，可以通过一个变量来显式进行。对于这一实例，最合理的解决方案就是使用伪变量this，把List方法作为一个参数传递给Link的内部方法addBefore（另一种替代的方式，就是使每个Link对象都包含一个关于与其相关的List的引用，但是这样做有些过于浪费内存）。
+
+
+
+\begin{lstlisting}[language=C++]
+class List {
+	Link *firstElement;
+	
+	class Link{
+		void addBefore(int val, List *theList){
+			...
+			if(backwardLink == 0){
+				theList->firstElement = newLink;
+			}
+			...
+		}
+	};
+public:
+	void push_front(int val){
+		...
+		// pass self as argument
+		firstElement->addBefore(val, this);
+	}
+	... // other methods omitted
+};
+\end{lstlisting}
+
+当嵌套类的方法定义于类主体之外时，方法的名称就需要通过多级限定来表示。例如，下面这个示例展示了方法addBefore通过这种形式进行编码的情形。
+
+
+
+\begin{lstlisting}[language=C++]
+void List::Link::addBefore(int val, List *theList){
+	Link *newLink = new Link(val, this, backwardLink);
+	if(backwardLink == 0){
+		theList->firstElement = newLink;
+	}else{
+		backwardLink->forwardLink = newLink;
+		backwardLink->newLink;
+	}
+}
+\end{lstlisting}
+
+在上述的示例中，函数的名称表明这是一个名称为addBefore的方法，并且这个方法是Link类的一部分，同样，Link类又被定义为List类的一部分。
+
+\section{Meta Class}
+
+
+为了理解Smalltalk和其他语言中的元类（metaclass）的概念，首先要提到一种和对象无关，但却和类相关的方法。也就是说，假设我们创建了纸牌对象，则不会在对象自身中发现和纸牌相关的方法，但是却可以在类PlayingCard中找到这一方法。例如，在下面的示例中，在类PlayingCard中找到与纸牌相关的方法。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[scale=0.6]{playingcard_meta.png}
+\label{fig:playingcard_meta}
+\end{figure}
+
+
+在Smalltalk语言中，类就是对象。类自身就是可以对特定消息作出响应，比如用来创建对象的消息new。例如，在下面所示的示意图显示了类自身对特定消息作出响应。
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[scale=0.6]{smalltalk_meta.png}
+\label{fig:smalltalk_meta}
+\end{figure}
+
+假设有这样一种情况，我们想要创建一个可以用在构造函数中的方法，即我们需要一种方法——假设为rank: suit:，它可以传递给具体的类对象——假设为PlayingCard，当执行方法时，将创建一个新的实例并确保这个实例被正确地初始化。在这种情况下，这个方法应该放在什么地方呢？它不可能是PlayingCard的成员方法，因为它是类实例所执行的方法，而在创建类的时候我们还没有实例。它也不是Class的成员方法，因为Class的成员方法对所有的类都是通用的，而这个初始化方法只是针对这一个类有效。
+
+解决方案是创建一个新的“隐藏”类，称为元类（metaclass），名字为PlayingCard的对象实际上不是Class的实例，而是MetaPlayingCard的实例，而MetaPlayingCard则继承于Class。与初始化相关的特定行为可以置于这个元类中。
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[scale=0.6]{acard_meta.png}
+\label{fig:acard_meta}
+\end{figure}
+
+类MetaPlayingCard中的行为，只能被对象PlayingCard所理解，而不能被其他对象所理解。对象PlayingCard是类MetaPlayingCard的唯一实例。
+
+Smalltalk浏览器通常对用户隐藏元对象，我们把这样的方法称为类方法（class method），它们看起来就像与类相关联一样，但是在浏览器背后，类方法只是和元类相关联的普通方法。
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
 
 
 
@@ -592,6 +844,122 @@ Smalltalk语言并没有广泛地遵循以单词get开始的命名约定。通�
 \end{compactitem}
 
 
+在面向对象编程中，消息总是传递给接收器。然而，在大多数面向对象语言中，接收器并不出现在方法的参数列表中，而是隐藏于方法的定义之中，也就是说用来响应消息的方法在方法体内部存取消息接收器。
+
+只有当必须从方法体内部去存取接收器的数值时，才会使用伪变量（pseudo-variable）。伪变量和通常的变量很相似，只是它不需要声明，也不能被更改（因此这里也许使用伪常量更加合适，只是伪常量从未出现在任何语言的定义中）。
+
+\begin{compactitem}
+\item 在Java和C++语言中，由伪变量表示的接收器命名为this；
+\item 在Eiffel语言中称为Current；
+\item 在Smalltalk、Objective-C、Object Pascal等语言中称为self。
+\end{compactitem}
+
+伪变量在使用时就好像是作为类的一个实例。例如，方法color可以用Pascal语言编写成如下结果：
+
+\begin{lstlisting}[language=Pascal]
+function PlayingCard.color : colors;
+begin
+	if(self.suit = Heart) or (self.suit = Diamond) then
+		color := Red
+	else
+		color := Black;
+end
+\end{lstlisting}
+
+在很多编程语言中，对接收器伪变量的使用都可以忽略。如果在没有引用接收器的条件下，访问一个数据字段或者调用一个方法，那么这意味着接收器伪变量将作为消息的主体。
+
+例如，PlayingCard中的flip方法就体现了这一点，flip方法就是通过调用setFaceUp方法来实现它的功能的：
+
+
+
+\begin{lstlisting}[language=Java]
+class PlayingCard{
+	...
+	public void flip(){
+		setFaceUp(!faceUp);
+	}
+}
+\end{lstlisting}
+
+使用伪变量可以将这一方法重新编写，从而使接收器显示出来，如下所示：
+
+
+
+\begin{lstlisting}[language=Java]
+class PlayingCard{
+	...
+	public void flip(){
+		this.setFaceUp(!this.faceUp)
+	}
+}
+\end{lstlisting}
+
+当某一方法想要把自身当作一个参数传递给另外一个函数时，就必须使用变量来解决问题。
+
+
+
+\begin{lstlisting}[language=Java]
+class QuitButton extends Button implements ActionListener{
+	public QuitButton(){
+		...
+		//install ourselves as a listener for button events
+		addActionListener(this);
+	}
+	...
+}
+\end{lstlisting}
+
+对于构造函数，使用this和构造函数的参数初始化数据成员。通过显式地使用this，可以区分用作函数参数和数据成员的两个同名变量。
+
+
+\begin{lstlisting}[language=Java]
+class PlayingCard{
+	public PlayingCard(int suit,int rank){
+		this.rank = rank; //this.rank is the data member
+		this.suit = suit; //rank is the argument value
+		this.faceUp = true;
+	}
+	...
+	private int suit;
+	private int rank;
+	private boolean faceUp;
+}
+\end{lstlisting}
+
+Python、CLOS和Oberon等语言则不遵循上述原则，接收器必须在方法体中显式地声明。例如，在Python语言中，一条消息可以包含两个参数，如下所示：
+
+
+
+
+\begin{lstlisting}[language=Python]
+aCard.moveTo(27,3)
+\end{lstlisting}
+
+相应的方法需要声明3个参数值：
+
+
+\begin{lstlisting}[language=Python]
+class PlayingCard:
+	def moveTo(self, x, y):
+		...
+\end{lstlisting}
+
+
+对于这些语言，尽管原则上第一个参数可以以任何名称来命名，但是一般都命名为self或者this，以此来表示该方法与接收器伪变量之间的关系。
+
+在CLOS和Oberon语言中，也必须把接收器命名为方法的一个参数。
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
 
 \section{Constant}
 
@@ -623,6 +991,9 @@ class PlayingCard{
 
 
 常量（或者称为不可变数据字段）直观地说明了在程序执行过程中不能改变其值的数据字段。
+
+
+
 
 
 \section{Isolation}
@@ -826,6 +1197,726 @@ def color(self):
 \end{lstlisting}
 
 
+\section{Message}
+
+
+\begin{compactitem}
+\item 面向对象语言的静态特征包括如何创建新的数据类型、新的类和新的方法等。
+\item 面向对象语言的动态特征涉及到值是如何实例化（或者被创建）的，它们又是如何初始化的，以及它们如何通过消息传递来相互联系。
+\end{compactitem}
+
+在面向对象编程思想中，创建（实例化）就是为一个新对象分配存储空间并且将这段空间与对象名称进行绑定。
+
+实际上，初始化不但包括为对象的数据区域设置初始值（类似于对记录中的数据字段进行的初始化），还包括建立操作对象所需的初始条件这个更一般的过程。
+
+在大多数面向对象语言中，后者对于使用对象的客户的隐藏程度是封装的一个重要的方面，这也被认为是面向对象技术优于其他编程技术的一个主要方面。
+
+使用消息传递（message passing，或称为method lookup，方法查询）这一术语来表示请求对象执行一项特定行为的动态过程。例如，在Fred送花给Cris的示例中，非正式地描述了消息传递，并且指明了如何区分消息和通常的过程调用。
+
+\begin{compactitem}
+\item 消息总是传递给某个称为接收器的对象；
+\item 响应消息所执行的行为不是固定不变的，它们根据接收器类的不同而不同。
+\end{compactitem}
+
+不同的对象可以接收相同的消息，但是却执行不同的行为，因此对于任何消息传递表达式都有3个确定的部分，它们是接收器（receiver，消息传递的目的对象）、消息选择器（message selector，表示待传递的特定的消息文本）和用于响应消息的系数（argument）。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[scale=0.65]{message.png}
+\caption{消息传递表达式}
+\label{fig:message}
+\end{figure}
+
+消息传递最通常的语法是使用句点来把接收器和消息选择器分离开来，还有一些次要的变化特征。例如，在方法没有参数时，是否需要使用一对空的圆括号（在Pascal和一些其他的语言中可以省略这对圆括号）。
+
+\begin{lstlisting}[language=C]
+// C++, C#, Java, Python, Ruby
+aCard.flip()；
+aCard.setFaceUp(true);
+aGame.displayCard(aCard,45,56);
+// Pascal, Delphi, Eiffel, Oberon
+aCard.flip;
+aCard.setFaceUp(true);
+aGame.displayCard(aCard,45,56);
+// Smalltalk
+aCard flip.
+aCard setFaceUp: true.
+aGame display: aCard atLocation: 45 and: 56.
+// Objective-C
+[ aCard flip ].
+[ aCard setFaceUp: true ].
+[ aGame display: aCard atLocation: 45 and: 56 ]
+// CLOS
+(flip aCard)
+(setFaceUp aCard true)
+(displayCard aGame 45 56)
+\end{lstlisting}
+
+在Smalltalk和Object-C语言中，表示消息传递的语法有一些细微的差异，使用空格作为分隔符。一元消息（不含参数的消息）只是简单地写在接收器之后。含有参数的消息使用关键字表示法（keyword notation）。消息选择器被分成几个部分，每个参数之前都有一个部分。冒号跟在每个关键字之后。
+
+\begin{lstlisting}[language=C++]
+aGame display: aCard atLocation: 45 and: 56.
+\end{lstlisting}
+
+
+在Smalltalk语言中，即使是二元操作（例如加法）也被解释为将右值参数传递给左值的消息。
+
+\begin{lstlisting}[language=C++]
+z <- x + y. " message to x to add y to itself and return sum "
+\end{lstlisting}
+
+在C++语言中定义的二元操作符也表示相似的含义。
+
+在Object-C语言中，将一条类似于Smalltalk语言的消息包含在方括号中，称为消息传递表达式。方括号只包括消息本身，而不包括其他内容。例如，不包括存放消息结果的变量。
+
+
+\begin{lstlisting}[language=C++]
+int cardrank = [ aCard getRank ];
+\end{lstlisting}
+
+
+CLOS语言中的语法遵循传统的Lisp语法。Lisp语言中的所有表达式都写成以圆括号为边界的列表。操作是列表的第一个元素，紧接着是参数。接收器是第一个参数。
+
+
+
+\chapter{Property}
+
+
+
+\section{Overview}
+
+编程语言（包括面向对象语言和非面向对象语言）都包含一种称为属性的概念。在语法上，属性是以数据字段的方式来进行操作的，但是像方法一样，它也是内部操作。也就是说，属性既可以作为表达式来读取，也可以对其进行赋值。
+
+
+
+
+\begin{lstlisting}[language=C++]
+Writeln('rank is', aCard.rank); (* rank is property of card *)
+aCard.rank = 5; (* changing the rank property *)
+\end{lstlisting}
+
+无论是读取属性值还是对属性赋值，都必须通过函数来实现，而不是仅仅由一个简单的数据值来实现。
+
+Delphi语言中的属性是通过关键字property以及修饰符read和write来声明的，紧跟read和write关键字之后的可以是数据字段，也可以是方法名。
+
+当某一属性用在表达式的形式中，read属性就会被会调用，而当属性作为赋值目标时，write属性就会被调用。只能读取而不能写入的属性称为只读属性。
+
+例如，在下面的示例中，对属性的修改作为属性的纸牌点数值和花色值。
+
+
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+type
+	TPlayingCard = class(TObject)
+		public
+				
+			property rank : Integer read rankValue;
+			property suit : Suits read suitValue write suitValue;
+		private
+			rankValue : Integer;
+			suitValue : Suits;
+	end;
+\end{lstlisting}
+
+这里，我们把点数定义成只读属性，而将花色定义成读写属性，也可以定义一个只写属性，只是这很少用。
+
+
+在C\#中，属性是通过编写一个无参数的方法来定义的，这个方法只包括一个get部分或者一个set部分，其中：
+
+\begin{compactitem}
+\item get部分必须返回一个值；
+\item set部分可以使用伪变量value来设置属性。
+\end{compactitem}
+
+\begin{lstlisting}[language={[Sharp]C}]
+public class PlayingCard{
+	public int rank{
+		get{
+			return rankValue;
+		}
+		set{
+			rankValue = value;
+		}
+	}
+	...
+	private int rankValue;
+}
+\end{lstlisting}
+
+\begin{compactitem}
+\item 如果只有get部分而没有提供set部分，则属性为只读属性。
+\item 如果只有set部分而没有提供get部分，则属性为只写属性。
+\end{compactitem}
+
+在C\#程序中，属性通常是无参数且返回惟一值的函数。
+
+\subsection{C++}
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+\subsection{Java}
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+\subsection{C\#}
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+\chapter{Field}
+
+使用被一个类的所有实例共享的公共数据字段，在解决许多问题时都非常方便。然而，对这样的对象进行的操作却为面向对象语言的设计者创建了一个奇特的矛盾。
+
+为了理解这个问题，考虑一下当初创建类这个概念的原因——就是要减少创建相似对象的工作量。类的每一个实例都和这个类的其他实例有着完全一致的行为。现在，假设由于某种原因我们定义了一个公共数据字段，它可以被类的所有实例共享，然后考虑如何对公共数据字段进行初始化。这看起来有两种选择，但是每种选择都不能令人满意。一种选择是每个实例都执行对公共数据字段的初始化任务（字段初始化后，还会被反复地初始化），另一种选择是没有实例执行初始化任务（数据字段一直处于未初始化状态）。
+
+为了解决这一矛盾，我们需要从类/方法/实例这个简单的实例中跳出来进行思考，因此另外一个机制就是，对象本身不必对共享数据进行初始化。
+
+如果对象通过内存管理器自动将共享数据初始化为一个特定值（例如0），那么每一个实例都可以测试这一特定值，并且如果它们是第一个进行测试的实例，它们就会对数据进行初始化。不过，还应该有其他的更好的方法。
+
+在C++和Java语言中，共享数据字段都是使用static修饰符来创建的。例如，在Java语言的符号常量创建中，就会使用这种办法。
+
+一般情况下，Java语言中的静态数据字段的初始化是在加载类时，通过执行静态块（static block）来完成的。例如，假设我们想要了解一个类已经创建了多少个实例，可以通过下面的方法来实现。
+
+\begin{lstlisting}[language=Java]
+class CountingClass{
+	CountingClass(){
+		count = count + 1; // increment count
+		...
+	}
+	...
+	private static int count; // shared by all
+	static { // static block
+		count = 0;
+	}
+}
+\end{lstlisting}
+
+C++语言有两种不同的方法，其中由基本数据类型表示的静态数据字段（或常量）可以在类的主体中进行初始化，或者也可以在类之外对静态数据字段进行全局的初始化。
+
+
+
+\begin{lstlisting}[language=C++]
+class CountingClass{
+pubilc:
+	CountingClass(){
+		count ++;
+		...
+	}
+
+private:
+	static int count;
+};
+
+// global initialization is separated from class
+int CountingClass::count = 0;
+\end{lstlisting}
+
+C\#语言可以通过静态构造方法（声明为static的构造方法）来对静态数据字段进行初始化，而且构造方法不允许有任何参数。
+
+
+使用关键字static就解决了以前关于初始化一个类的所有实例共享数据字段所引起的特殊矛盾。
+
+Python语言中的类的数据字段在方法层次上命名，而实例变量在方法内部命名（一般在构造方法内部）。
+
+\begin{lstlisting}[language=Python]
+class CountingClass:
+	count = 0
+	def __init__(self):
+		self.otherField = 3
+\end{lstlisting}
+
+
+
+\section{Anonymous Class}
+
+在很多面向对象语言中，类本身就是一个对象。
+
+在多数情况下，有一个特殊的类（一般称为Class），这就是类的类，而且它们具有相应的行为。例如，通常创建类的一个实例就是简单地给类对象传递一条消息。
+
+下面是Smalltalk中的相应示例：
+
+\begin{lstlisting}[language=C++]
+aCard<-PlayingCard new. "message new given to object PlayingCard"
+\end{lstlisting}
+
+其他的一般行为包括返回类的名称、类实例大小或者类实例可识别的消息列表。
+
+在非交互式语言中，有时很难表示程序语句和程序输出之间的关系，在实际的程序开发中要能够区分可执行语句和非执行的输出结果。例如，下面的Java代码就说明了这些应用：
+
+
+
+
+\begin{lstlisting}[language=C++]
+Object obj = new PlayingCard();
+Class c = obj.getClass();
+System.out.println("class is " + c.getName());
+\end{lstlisting}
+
+至于类是否是面向对象编程所必需的，现代软件开发技术中已经证明，不使用类而通过委托（delegation）就可以实现面向对象语言的大多数期望的特征。不过，从委托语言的第一次提出到现在，它并没有得到完全支持，所以大多数用户更愿意使用类。
+
+
+\chapter{Constructor}
+
+构造函数（construtor）是用来初始化一个新创建对象的方法。
+
+把创建和初始化联系起来可以确保对象在正确地初始化之前不会被使用。当创建和初始化分离时或者说没有构造函数时，用户在创建新对象之后，很容易忘记调用初始化例程，这样通常会导致不良后果。
+
+在同一个对象上调用两次初始化过程，这通常也会引起一定的麻烦，通过使用构造函数就可以避免这个问题。
+
+构造函数执行两项主要任务—内存分配和初始化，从而确保所有得以分配内存的对象都可以被正确地初始化。
+
+在Java和C++语言中，可以通过检查与类显示的名称是否相同来识别构造函数和普通方法的区别。另外，构造函数和普通方法的另一个细微的区别是构造函数不声明返回值的数据类型。
+
+\begin{lstlisting}[language=Java]
+class PlayingCard{ // a Java constructor
+	public PlayingCard(int s, int r){
+		suit = s;
+		rank = r;
+		faceUp = true;
+	}
+	...
+}
+\end{lstlisting}
+
+
+当使用new操作符进行内存分配时，构造函数所需的参数紧随在类名之后。
+
+
+\begin{lstlisting}[language=Java]
+aCard = new PlayingCard(PlayingCard.Diamond, 3);
+\end{lstlisting}
+
+在Java和C\#语言中，数据字段可以初始化为特定的数值，这种赋值独立于构造函数中的参数赋值，数据字段可以在初始化时进行赋值，也可以在后来的构造函数中再次赋值。
+
+
+
+\begin{lstlisting}[language=Java]
+class Complex{ // complex numbers
+	public Complex(double rv){
+		realPart = rv;
+	}
+	public double realPart = 0.0; // initialize data areas to zero
+	public double imgPart = 0.0; // initialize data areas to zero
+}
+\end{lstlisting}
+
+在C++语言中，也使用类似的语法来声明静态（static）数据变量和/或常量（const）。
+
+在C++、C\#和Java语言中，只要每个函数参数的数目、类型或次序不同，就允许多个函数使用相同的名称定义。构造函数经常使用这种定义方式，例如一个构造函数为无参数函数，而另一个构造函数为有参数函数。
+
+
+\begin{lstlisting}[language=C++]
+class PlayingCard{
+public:
+	PlayingCard(){ // default constructor
+		// used when no arguments are given
+		suit = Diamond;
+		rank = 1;
+		faceUp = true;
+	}
+	
+	PlayingCard(Suit is){ // constructor with one argument
+		suit = is;
+		rank = 1;
+		faceUp = true;
+	}
+	
+	PlayingCard(Suit is, int ir){ // constructor with two arguments
+		suit = is;
+		rank = ir;
+		faceUp = true;
+	}
+};
+\end{lstlisting}
+
+
+参数数目、类型和次序的结合一般称为函数类型签名（type signature），通过检查调用的类型签名可以决定选择哪个过载构造函数。
+
+
+\begin{lstlisting}[language=C++]
+PlayingCard cardOne; // invokes default
+PlayingCard *cardTwo = new PlayingCard;
+PlayingCard cardThree(PlayingCard.Heart);
+PlayingCard *cardFour = new PlayingCard(PlayingCard.Spade, 6);
+\end{lstlisting}
+
+必须注意的是，在C++语言中调用缺省构造函数时必须去掉括号。这里，使用括号虽然符合语法，但却有着完全不同的意义。
+
+
+
+\begin{lstlisting}[language=C++]
+PlayingCard cardFive; // create a new card
+// forward definition for function 
+// named cardSix that returns a PlayingCard
+PlayingCard cardSix(); 
+\end{lstlisting}
+
+另外，当在C++语言中使用new操作符和无参数构造函数建立对象时，不需要括号，但是在Java和C\#语言中却完全相反。
+
+
+\begin{lstlisting}[language=Java]
+PlayingCard cardSeven = new PlayingCard(); // Java
+PlayingCard *cardEight = new PlayingCard; // C++
+\end{lstlisting}
+
+
+\subsection{Initializer}
+
+
+
+在C++语言中，构造函数可以使用与其他语言稍有不同的语法初始化数据成员，并且可以将这种冒号后跟着变量名称和括号括起来的初始值所组成的结构称为初始化器（initializer）。
+
+
+\begin{lstlisting}[language=C++]
+class PlayingCard{
+public:
+	PlayingCard(Suits is, int ir){
+		:suit(is), rank(ir), faceUp(true){}
+		...
+	}
+};
+\end{lstlisting}
+
+对于针对整数等简单数值，使用初始化器与在构造函数体中使用赋值语句是没有区别的。但是，还有其他各种不同形式的初始化，只能通过C++语言中的初始化器来实现。
+
+在Objective-C语言中，构造函数不需要与类同名，它们可以通过使用位于函数定义之前的加号“+”而非减号“-”来标识。这样的函数称为工厂方法（factory method）。工厂方法使用new操作符执行实际的内存分配，然后执行初始化对象所需的所有行为。
+
+\begin{lstlisting}[language={[Objective]C}]
+@ implementation PlayingCard
++ suit: (int) s rank: (int) r{
+	self = [ Card new ];
+	suit = s;
+	rank = r;
+	return self;
+} 
+@ end
+\end{lstlisting}
+
+对于Objective-C语言，调用工厂方法是通过使用作为接收器的类来实现的，而不是使用实例对象。
+
+\begin{lstlisting}[language={[Objective]C}]
+PlayingCard aCard = [ PlayingCard suit : Diamond rank : 3 ];
+\end{lstlisting}
+
+在Python语言中，构造函数都有一个关键字“\_\_init\_\_”，当创建一个对象时，初始化函数是隐式调用的，传递的参数包括新创建的对象，以及其他用于创建表达式的参数。
+
+\begin{lstlisting}[language=Python]
+aCard = PlayingCard(2,3)
+	# invokes PlayingCard.__init__(aCard, 2, 3)
+\end{lstlisting}
+
+在Apple Object Pascal语言中，没有构造函数，只能通过使用操作符new来创建新对象，用户通常定义他们自己的初始化例程，并且通过将新创建的对象作为接收器来调用初始化例程。
+
+Object Pascal语言的Delphi版本和C++语言十分接近。与C++语言不同的是，Delphi用户不必将构造函数定义为和类同名，通常（但不是必需的）构造函数命名为Create。
+
+\begin{lstlisting}[language=Delphi]
+interface
+	type
+		TPlayingCard = class (TObject)
+			constructor Create(is : Suits, ir : integer);
+			...
+		end;
+	implementation
+		constructor TPlayingCard.Create(is : Suits, ir : integer);
+		begin
+			suit = is;
+			rank = ir;
+			faceUp = true;
+		end;
+\end{lstlisting}
+
+以类作为接收器，通过使用构造方法就可以创建对象。
+
+\begin{lstlisting}[language=Delphi]
+aCard := TPlayingCard.Create(Spade, 4);
+\end{lstlisting}
+
+
+正统规范的类（orthodox canonical class）形式要求几乎所有的类都应该定义4个重要的函数，如下所示：
+
+\begin{description}
+\item[缺省构造函数] 当建立的对象没有指定参数值时调用的构造函数，用于在内部初始化对象和数据成员。
+\item[拷贝构造函数] 在实现按赋值参数调用（call-by-value parameter）时使用。
+\item[赋值操作符] 用来把一个值赋给另外一个对象。
+\item[析构函数（destructor）] 当对象被删除时调用此函数。
+\end{description}
+
+缺省构造函数仅仅是一个无参数构造函数，拷贝构造函数以一个类实例的引用作为参数，并将对象自身初始化为参数的拷贝。
+
+
+
+\begin{lstlisting}[language=C++]
+class PlayingCard{
+public:
+	...
+	PlayingCard(PlayingCard &aCard){
+		// initialize ourself as copy of argument
+		rank = aCard.getRank();
+		suit = aCard.getSuit();
+		faceUp = aCard.isFaceUp();
+	}
+	...
+};
+\end{lstlisting}
+
+
+对于这四个函数，如果用户没有提供相应函数的实现，系统就会自动创建相应函数的缺省版本。
+
+在大多数情况下（尤其是涉及动态内存分配时），缺省版本的实现并不是用户所希望的。即使没有完成类主体的编写，只提供这些函数的空壳，也表明程序设计者已经考虑了关于这些函数的问题。
+
+此外，访问修饰符的合理使用使用户可以自由掌握允许或禁止某个类的各种不同操作。
+
+在某些语言（比如C++和Java）允许创建只能赋值一次，禁止再做改变的数据字段。其中，Java语言将不可改变的数据字段声明为final，它可以直接进行初始化。
+
+
+
+
+\begin{lstlisting}[language=Java]
+class ListofImportantPeople{
+	public final int max = 100; // maximum number of people
+	...
+}
+\end{lstlisting}
+
+或者，final值也可以在构造函数赋值。如果有多个构造函数，那么每一个构造函数都必须初始化这一数据字段。
+
+
+
+\begin{lstlisting}[language=Java]
+class PlayingCard{
+	public PlayingCard(){
+		suit = Diamond;
+		rank = 1;
+		faceUp = true;
+	}
+	public PlayingCard(Suits is, int ir){
+		suit = is;
+		rank = ir;
+		faceUp = true;
+	}
+	...
+	
+	public final Suits suit; // suit and rank are immutable
+	public final int rank; // 
+	private boolean faceUp; // faceUp is not
+}
+\end{lstlisting}
+
+在C++语言中，不可改变的值使用关键字const来标识，通过在构造函数中使用一个初始化子句来对其进行赋值。
+
+
+\begin{lstlisting}[language=C++]
+class PlayingCard{
+public:
+	PlayingCard() : suit(Diamond), rank(1){
+		faceUp = true;
+	}
+	PlayingCard(Suits is, int ir) : suit(is), rank(ir){
+		faceUp = true;
+	}
+	...
+	
+	const Suits suit;
+	const int rank;
+private:
+	boolean faceUp;
+};
+\end{lstlisting}
+
+在const和final这两种常数之间有一点细微但却十分重要的区别。
+
+\begin{compactitem}
+\item 在C++语言中，修饰符const说明的相关值是真正的常数，不允许改变。
+\item 在Java语言中，修饰符final只是断言相关的变量不会赋予新值，没有什么能够阻止在对象内部对变量值进行改变（例如对消息的响应）。
+\end{compactitem}
+
+为了说明这一点，将下面的数据类型定义命名为Box：
+
+\begin{lstlisting}[language=Java]
+class Box{
+	public void setValue(int v);
+	public int getValue(){
+		return v;
+	}
+	private int v = 0;
+}
+\end{lstlisting}
+
+使用final声明一个变量，只是意味着它不会被重新赋值，并不意味着它不会再改变。
+
+
+
+\begin{lstlisting}[language=Java]
+final aBox = new Box(); //can be assigned only once
+aBox.setValue(8); //but can change
+aBox.setValue(12); //as often as you like
+\end{lstlisting}
+
+在C++语言中，使用const修饰符声明的变量禁止以任何方式进行修改，即使是处于对象的内部状态（个别的数据字段可以命名为mutable，这时即使数据字段处于一个常量对象内，也可以进行改变，只是这种情况很少见）。
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+\chapter{Destructor}
+
+
+
+当对象创建时（或者说对象诞生时），构造函数允许用户执行特定的行为。当变量即将消失并且它的内存将被回收时，在变量生命的末期指定实现一些行为有时是很用的。
+
+在C++语言中，可以通过析构函数达到这些目的。只要从内存空间开始释放对象，析构函数就会自动调用。
+
+\begin{compactitem}
+\item 对于自动变量，当包含变量声明的函数返回时，变量的空间就会被释放。
+\item 对于动态分配的变量，空间的释放通过操作符delete进行。
+\end{compactitem}
+
+析构函数的名称为“～”加上类的名称，它不需要任何参数，也不会被用户直接调用。
+
+下面的一个简单却很灵巧的函数可以说明构造函数和析构函数的使用。这里，类Trace定义了一个简单的类，它可以记录执行流。类的构造函数以描述字符串作为参数，当与其相关的变量获得内存空间分配时（即当执行过程内的变量声明语句时），显示一条消息。当退出过程、变量的内存空间被释放时，析构函数显示第二条消息。
+
+
+\begin{lstlisting}[language=C++]
+class Trace{
+public:
+	// constructor and descructor
+	Trace(string);
+	~Trace();
+private:
+	string text;
+};
+
+Trace::Trace(string t) : text(t) {
+	cout << "entering" << text << endl;
+}
+Trace::~Trace(){
+	cout << "exiting" << text << endl;
+}
+\end{lstlisting}
+
+
+为了记录执行流，用户只需在每一个需要记录的过程中创建一个类型为Trace的哑变量声明即可。考虑一下下面这两个例程：
+
+
+
+
+\begin{lstlisting}[language=C++]
+void procedureA(){
+	Trace dummy("procedure A");
+	procedureB(7);
+}
+void procedureB(int x){
+	Trace dummy("procedure B");
+	if(x < 5){
+		Trace aaa("true case in Procedure B");
+		...
+	}else{
+		Trace bbb("false case in Procedure B'');
+		...
+	}
+}
+\end{lstlisting}
+
+根据它们的输出情况，类型为Trace的变量值可以记录执行流，下面就是一个典型的输出结果：
+
+
+
+\begin{lstlisting}[language=bash]
+entering procedure A
+entering procedure B
+entering false case in Procedure B
+...
+exiting false case in Procedure B
+exiting procedure B
+exiting procedure A
+\end{lstlisting}
+
+Delphi Pascal语言也支持析构函数这种形式，析构函数（通常称为Destroy）通过关键字destructor来声明。当释放动态分配对象时，内存管理系统会调用析构函数。
+
+
+
+\begin{lstlisting}[language=C++]
+type
+	TPlayingCard = class(TObject)
+		...	
+		destructor Destroy;
+	end;
+destructor PlayingCard.Destroy;
+begin
+	(* whatever housekeeping is necessary *)
+	...
+end;
+\end{lstlisting}
+
+
+Java语言与Eiffel语言相似，两者都使用垃圾回收系统来回收内存，但它们的使用情况却不同。
+
+\begin{compactitem}
+\item 在Java语言中，在垃圾回收系统即将回收变量的内存前，才调用finalize方法。
+
+内存回收操作可能发生于任何时刻，也可能从不发生，因此在Java语言中使用finalize方法的情况远不如在C++语言中使用析构函数的情况多。
+
+
+\begin{lstlisting}[language=Java]
+class FinalizeExample{
+	public void finalize(){
+		System.out.println(“finally doing finalization”);
+		System.exit(0);
+	}
+}
+
+//first create an instance
+Object x = new FinalizeExample();
+//redefining x releases memory
+x = new Integer(3);
+//now do lots of memory allocations
+//at some indeterminent point garbage collection
+//will occur and final method will be called
+for(int i = 0;i < 1000;i++){
+	System.out.println(“i is”+i);
+	for(int j = 0;j < 1000;j++){
+		x = new Integer(j);
+	}
+}
+\end{lstlisting}
+
+\item 在Eiffel语言中，同样的功能是通过继承Memory类和改写dispose方法来实现的。
+\end{compactitem}
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
 
 
 
@@ -838,44 +1929,6 @@ def color(self):
 
 
 
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
 \begin{lstlisting}[language=C++]
 
 \end{lstlisting}
@@ -887,78 +1940,6 @@ def color(self):
 \begin{lstlisting}[language=C++]
 
 \end{lstlisting}
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
