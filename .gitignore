@@ -5,6 +5,7 @@
 *.bbl
 *.bib.bak
 *.blg
+*.doc#
 *.dvi
 *.fdb_latexmk
 *.glg
