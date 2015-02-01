@@ -1,0 +1,492 @@
+\part{Inheritance}
+
+
+
+\chapter{Introduction}
+
+
+
+\section{Overview}
+
+
+面向对象编程的第一个原则是将一项任务组织成多个互相作用的松散耦合的软件组件，下一个原则就是基于继承这个概念将类组织成一个层次结构。
+
+
+继承（inheritance）可以使一个子类的实例存取与它的父类（超类）相关的数据和行为（方法）。
+
+买花的顾客Chris和花商Fred最终能联系到一起，我们希望花商展示特定行为的原因并不是因为他是一个花商，而仅仅是因为他是一个店主。例如，我们希望Fred通过收款来完成交易并以收据作为反馈，而且这种行为并不只是对花商有效，对面包师、杂货商、文具商、汽车经销商及其他商人都适用，这样就将花商的特定的行为与shopkeeper这个更一般的类别联系起来，并且由于Florists是店主的一个特殊表现形式，因此店主所具有的行为自动地也适用于花商这个子类。
+
+继承在程序设计语言中的含义如下：
+
+\begin{compactitem}
+\item 子类所具有的数据和行为总是作为与其相关的父类的属性的扩展（extension）（即更大的集合），即子类具有父类的所有属性以及其他属性。
+\item 子类是父类的更加特殊（或受限制）的形式，因此子类在某种程度上也是父类的收缩（contraction）。
+\end{compactitem}
+
+作为扩张和收缩之间的张力，继承是许多技术的内在来源，但同时也造成了许多对其使用的混乱。
+
+继承总是可以传递的，这样类就可以继承各个级别的父类的特征。例如，如果Dog类是Labrador类的子类，并且Labrador类是Animal类的子类，那么Dog类将继承Labrador类和Animal类的属性。
+
+
+\section{Relationship}
+
+
+\subsection{is-a}
+
+在检验两个概念是否为继承关系时存在一项规则，这项规则称为是一个（is-a）检验，其具体内容就是如果要检验概念A与概念B是否为继承关系时，可以尝试套用这个语句：
+\[\mbox{A (n) A is a (n) B}\]
+
+如果这个语句“听起来是对的”，那么这个继承关系很可能就是正确的。例如，下面的这些描述都是合理的说法：
+
+\begin{compactenum}
+\item 鸟是动物
+\item 猫是哺乳动物
+\item 苹果派是派
+\item 文本窗口是窗口
+\item 球是图形对象
+\item 整数数组是数组
+\end{compactenum}
+
+另一方面，由于某种原因，下面的描述看起来就显得很奇怪，因此这些继承关系可能不成立。
+
+\begin{compactenum}
+\item 鸟是哺乳动物
+\item 苹果派是苹果
+\item 发动机是汽车
+\item 整数数组是整数
+\end{compactenum}
+
+对于大多数情况，这种检验都能就继承技术使用的合理性给出一个可靠的判断。
+
+\begin{compactitem}
+\item 继承作为代码复用的手段。
+
+子类可以继承父类的行为，因此子类中的一些代码就不必重新进行编写，当开发新程序时可以极大地减少其中的代码量。
+
+\item 继承作为概念复用的手段。
+
+在子类改写父类所定义的行为时，尽管此时并没有在父类和子类之间共享代码，但它们共享方法的定义。
+\end{compactitem}
+
+定义为public特征可以被类定义外部的代码所存取，而定义为private特征只能被类定义内部的代码所存取，继承引入了第三个标识protected。
+
+在C++、C\#、Delphi、Ruby及其他语言中，定义为protected特征只能被类定义内部及其子类定义内部的代码所存取，因此定义为protected特征比定义为private特征更易于存取。
+
+
+
+\begin{lstlisting}[language=C++]
+class Parent{
+private:
+	int three;
+protected:
+	int two;
+public:
+	int one;
+	Parent(){
+		one = two = three = 42;
+	}
+	void inParent(){
+		cout << one << two << three; /* all legal */ 
+	}
+};
+
+class Child:public Parent{
+	void inChild(){
+		cout << one; // legal
+		cout << two; // legal
+		cout << three; // error - not legal
+	}
+};
+
+void main(){
+	Child c;
+	cout << c.one; // legal
+	cout << c.two; // error - not legal
+	cout << c.three; // error - not legal
+}
+\end{lstlisting}
+
+私有特征只能用于父类的内部，保护特征只能用于父类内部和子类内部，只有共有特征才能用于类定义外部。
+
+Java语言也使用同样的关键字，但是对于Java语言，对保护特征的存取在声明这个类所在的包（package）内是合法的。
+
+
+\section{Machanism}
+
+按照继承机制可以将面向对象语言分为两类。
+
+\begin{compactitem}
+\item 每个类都必须继承于已存在的父类，例如Java、Smalltalk、Objective-C、C\#和Delphi Pascal。
+\item 每个类不必继承于已存在的父类，例如C++和Apple Pascal等。
+\end{compactitem}
+
+对于那些要求所有的类都必须继承于已存在的类的语言来说，一个好处就是存在一个关于所有对象的根类，这个根类在Smalltalk和Objective-C语言中表示为Object，在Delphi Pascal语言中表示为TObject。
+
+根类提供的任何行为都被所有的对象所继承，这样每一个对象都必然拥有一套公共的最小的函数集合。
+
+一个大的继承树的缺点是它将所有类结合成一个紧密耦合的单元。而对于C++等语言的程序来说，由于可以拥有几个独立的继承层次，因此不必包含整个巨大的类库，每个程序只使用其中的一小部分。当然这也意味着，用户无法定义那种所有对象都必然包含的功能。
+
+有时，也会从另外一种看待问题的视角来对语言进行划分。
+
+根据语言是动态类型还是静态类型将其分为两类，动态语言的对象主要通过它所支持的消息进行描述，如果两个对象支持同一套消息，并且以类似的方式对其进行响应，那么实际上如果不考虑它们各自的类描述，将无法区分两个对象。在这种情况下，使所有对象都继承于一个公共基类的大部分行为将很有用处。
+
+\begin{lstlisting}[language=C++]
+// C++
+class Wall : public GraphicalObject{
+	...
+};
+// C#
+class Wall : GraphicalObject{
+	...
+}
+// CLOS
+(defclass Wall(GraphicalObject))
+// Java
+class Wall extends GraphicalObject{
+	...
+}
+// Object Pascal
+type
+	Wall = object(GraphicalObject)
+		...
+	end;
+// Python
+class Wall(GraphicalObject):
+	def __init__(self):
+		...
+// Ruby
+class Wall < GraphicalObject
+	...
+end
+\end{lstlisting}
+
+
+\chapter{Subclass}
+
+研究静态类型语言中父类的数据类型与子类（或派生类）的数据类型之间的关系，可以发现以下的现象：
+
+\begin{compactitem}
+\item 子类的实例必须拥有父类的所有数据成员。
+\item 子类的实例必须至少通过继承（如果不是显式地改写）实现父类所定义的所有功能（子类也可以定义新的功能）。
+\item 在某种条件下，如果用子类实例来替换父类实例，那么将会发现子类实例可以完全模拟父类的行为，二者毫无差别。
+\end{compactitem}
+
+当检查关于继承不同的使用方式时，以上结论也并不总是有效。尽管如此，对于继承，以上结论仍然是较好的理想化描述，由此可以得出替换原则（principle of substitution）。
+
+\begin{oopquote}
+替换原则是指如果有A和B两个类，类B是类A的子类，那么在任何情况下都可以用类B来替换A，而外界毫无察觉。
+\end{oopquote}
+
+\chapter{Subtype}
+
+子类型（subtype）是指符合替换原则的子类关系，以区别于一般的可能不符合替换原则的子类关系。
+
+
+
+\begin{lstlisting}[language=C++]
+procedure drawBoard;
+var
+	gptr : GraphicalObject;
+	begin
+		(* draw each graphical object *)
+	gptr := listOfObject;
+	while gptr <> nil do begin
+		gptr.draw;
+		gptr := gptr.link;
+	end;
+end;
+\end{lstlisting}
+
+全局变量listOfObject保持一个图形对象列表，图形对象可以是三种类型之一。变量gptr声明为一个图形对象，在执行循环的过程中，此变量所表示的对象将来自每个子类。
+
+gptr有时表示球，有时表示洞口，有时表示桌壁。在每种情况下调用draw函数时，都会执行关于gptr当前值的正确的方法——而不是声明于类GraphicalObject中的方法。只有每个子类实现的功能都匹配于其父类所指定的功能，即子类必须同时也是子类型，代码才能够正确执行。
+
+所有面向对象编程语言都支持替换原则，尽管某些语言在改写方法时需要附加的语法。
+
+大多数语言都以一种非常直接的方式来支持替换原则，父类只包含从子类得来的值。不过，一个主要例外出现于C++语言中。
+
+对于C++语言，只有指针和引用真正地支持替换原则，声明为值（不是指针）的变量不支持替换原则。
+
+静态类型语言（例如C++、Object Pascal等）比动态类型语言（例如Smalltalk和Objective-C语言）更加强调替换原则。
+
+静态类型语言倾向于通过类来表现对象，而动态类型语言则是通过行为来表现对象。
+
+
+\begin{compactitem}
+\item 在静态类型语言中，多态函数（可以通过多个不同类的对象来表示的函数）只有通过确保所有函数参数都是给定类的子类，才能实现特定的函数功能。
+\item 在动态类型语言中，由于参数根本就没有类型化，因此同样的需求将变为参数必须能够对一组特定的消息进行响应。
+\end{compactitem}
+
+关于这种差别的一个例子就是需要一个以类Measureable的子类的实例作为参数的函数，与需要一个可以理解消息lessThan和equal的参数的函数进行比较。其中，前者通过对象所属的类来表现对象，后者通过对象的行为为表现对象，两种类型检查形式都应用于面向对象语言。
+
+\section{Override}
+
+子类有时为了避免继承父类的行为，需要对其进行改写（override）。
+
+从语法上讲，这意味着子类将定义一个与父类有着相同名称且类型签名相同的方法。当改写与替换相结合时，就会出现这样一种情况：变量声明为一个类，它所包含的值来自于子类，与给定消息相对应的方法同时出现于父类和子类。
+
+几乎在所有有这种情况的案例中，用户想要执行的方法都是来自于子类的方法，而忽略父类的同名方法。
+
+对于许多面向对象语言来说，只要子类通过同一类型签名来改写父类的同名方法，自然便会发生所期望的行为。另一方面，还有一些语言需要用户说明是否允许这种替换，一般以关键字virtual来表明这一含义。
+
+在C++语言中，必须在父类中使用virtual关键字（表明子类可能会发生改写行为，但不是一定发生这种行为）。实际上，C++语言中的虚拟改写比这里所描述的还要复杂。
+
+\begin{lstlisting}[language=C++]
+class GraphicalObject{
+public:
+	virtual void draw();
+};
+class Ball : public GraphicalObject{
+public:
+	virtual void draw(); // virtual optional here	
+};
+\end{lstlisting}
+
+在Object Pascal语言中，可以在子类中使用virtual关键字（表明改写已经发生）。
+
+
+\begin{lstlisting}[language=Pascal]
+// Object Pascal
+type
+	GraphicalObject = object
+		...
+		procedure draw;
+	end;
+
+	Ball = object(GraphicalObject)
+		...
+		procedure draw; override;
+	end;
+\end{lstlisting}
+
+另外，在C\#和Delphi语言中可能需要同时在父类和子类使用virtual关键字。
+
+
+
+\begin{lstlisting}[language={[Sharp]C}]
+// C#
+class GraphicalObject{
+	public virtual void draw(){...}
+}
+
+class Ball : GraphicalObject{
+	public override void draw(){...}
+}
+\end{lstlisting}
+
+在Delphi语言中需要分别使用virtual关键字来说明。
+
+
+
+\begin{lstlisting}[language=Delphi]
+// Delphi
+type
+	GraphicalObject = class(TObject)
+		...
+		procedure draw; virtual;
+	end;
+
+	Ball = class(GraphicalObject)
+		...
+		procedure draw; virtual;
+	end;
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
