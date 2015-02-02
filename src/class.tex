@@ -1452,6 +1452,9 @@ class CountingClass:
 
 在多数情况下，有一个特殊的类（一般称为Class），这就是类的类，而且它们具有相应的行为。例如，通常创建类的一个实例就是简单地给类对象传递一条消息。
 
+
+
+
 下面是Smalltalk中的相应示例：
 
 \begin{lstlisting}[language=C++]
@@ -1471,7 +1474,45 @@ Class c = obj.getClass();
 System.out.println("class is " + c.getName());
 \end{lstlisting}
 
-至于类是否是面向对象编程所必需的，现代软件开发技术中已经证明，不使用类而通过委托（delegation）就可以实现面向对象语言的大多数期望的特征。不过，从委托语言的第一次提出到现在，它并没有得到完全支持，所以大多数用户更愿意使用类。
+至于类是否是面向对象编程所必需的，现代软件开发技术中已经证明，不使用类而通过委托（delegation）就可以实现面向对象语言的大多数期望的特征。
+
+不过，从委托语言的第一次提出到现在，它并没有得到完全支持，所以大多数用户更愿意使用类。
+
+
+\subsection{Java}
+
+在某些应用场景中，用户需要创建一个简单的、不多于一个实例的类，这样的对象称为单件（singleton）。
+
+
+Java提供了创建这样的对象的一种机制，甚至不需要对这样的对象所涉及的类进行命名，因此这样的类称为匿名类（anonymous class）。
+
+为了创建匿名类，需要以下几个条件：
+
+\begin{compactenum}
+\item 只能创建一个匿名类的实例；
+\item 匿名类必须继承于父类或接口，并且不需要构造函数进行初始化。
+\end{compactenum}
+
+在GUI（用户界面）的环境下，经常会遇到这种情况。例如，我们在设计一个用于创建图形按钮的类ButtonAdapter时，为了提供关于按钮的行为，程序员必须建立一个继承于ButtonAdapter的新类，并且改写方法pressed。
+
+如果只需要一个这种对象，可以通过匿名类（又叫类定义表达式，class definition expression）来完成。
+
+在使用方法add将图形元素添加到窗口时，为了将新按钮添加到窗口中，需要以下代码：
+
+
+\begin{lstlisting}[language=Java]
+Window p = ...
+p.add(new ButtonAdapter("Quit"){
+		public void pressed(){System.exit(0);}
+	}
+);
+\end{lstlisting}
+
+通过查看传递给add操作符的参数，会发现参数涉及一个新值的创建，通过add操作符来实现。
+
+但是，这个关于new的参数列表的表达式并没有以反括号结束，而是又出现了一个花括号。实际上，这是一个新类的定义。创建了一个基于ButtonAdapter的子类，并且创建了一个关于这个子类的实例。这个新类所需的所有方法都通过内联函数给出。
+
+在这个实例中，新类改写了名为pressed的方法，最后通过反花括号结束了匿名类表达式。
 
 
 \chapter{Constructor}
@@ -1774,16 +1815,85 @@ aBox.setValue(12); //as often as you like
 在C++语言中，使用const修饰符声明的变量禁止以任何方式进行修改，即使是处于对象的内部状态（个别的数据字段可以命名为mutable，这时即使数据字段处于一个常量对象内，也可以进行改变，只是这种情况很少见）。
 
 
-\begin{lstlisting}[language=C++]
+\section{Inheritence}
 
+
+构造函数是一种在创建新对象值时隐式地调用的过程，通过构造函数可以保证新创建的对象得以正确的初始化。
+
+父类和新创建的子类都有待执行的初始化代码，在创建新对象时都要执行，因此继承使构造函数这个过程变得复杂。
+
+
+\subsection{Java}
+
+
+对于Java、C++和其他编程语言中，若父类的构造函数不需要附加参数，父类的构造函数和子类的构造函数就都会自动地执行。当父类需要参数时，子类必须显式地提供参数。其中，在Java语言中通过关键字super来实现。
+
+
+
+
+\begin{lstlisting}[language=Java]
+class Child extends Parent{
+	public Child(int x){
+		super(x+2); // invoke parent constructor
+		...
+	}
+}
+\end{lstlisting}
+
+
+\subsection{C++}
+
+C++语言通过在初始化时使用父类的名称来实现对构造函数的继承的。
+
+
+
+\begin{lstlisting}[language=C++]
+class Child : public Parent{
+public:
+	Child(int x) : Parent(x+2){...}
+};
 \end{lstlisting}
 
 
 
+在Delphi语言中，即使父类构造函数没有参数，子类的构造函数也必须总是调用父类的构造函数，实现的语法与通过改写方法来实现父类行为的语法相同。
+
+
+\begin{lstlisting}[language=Delphi]
+constructor TChildClass.Create;
+begin
+	inherited Create;	//execute constructor in parent
+end
+\end{lstlisting}
+
+父类构造函数的参数将作为调用的一部分。
+
+\begin{lstlisting}[language=C++]
+constructor TChildClass.Create(x : Integer);
+begin
+	inherited Create(x+2);
+end
+\end{lstlisting}
+
+\subsection{Python}
+
+在Python语言中，不会自动调用父类的初始化方法。
+
+
+\begin{lstlisting}[language=Python]
+class Child(Parent):
+	def __init__(self):
+		# first initialize parent
+		Parent.__init__(self)
+		# then do our initialization
+		...
+\end{lstlisting}
+
 
 \begin{lstlisting}[language=C++]
 
 \end{lstlisting}
+
 
 
 \chapter{Destructor}
@@ -1877,6 +1987,9 @@ end;
 \end{lstlisting}
 
 
+\section{Garbage Collection}
+
+
 Java语言与Eiffel语言相似，两者都使用垃圾回收系统来回收内存，但它们的使用情况却不同。
 
 \begin{compactitem}
@@ -1911,22 +2024,39 @@ for(int i = 0;i < 1000;i++){
 \item 在Eiffel语言中，同样的功能是通过继承Memory类和改写dispose方法来实现的。
 \end{compactitem}
 
+\section{Virtual Destructor}
+
+C++语言中的析构函数是一种在回收某个变量内存时调用的函数。析构函数用来执行那些可以确保变量值得以正确删除的任务。例如，通常使用析构函数来回收变量所使用的动态分配的内存。
+
+如果涉及替换和改写，那么有一点非常重要，就是需要将析构函数声明为virtual。如果不这样做，将导致无法正确调用子类的析构函数。下面的这个例子说明了这一错误。
 
 
 \begin{lstlisting}[language=C++]
-
+class Parent{
+public:
+	// warning, destructor not declared virtual
+	~Parent(){cout << "in parent\n";}
+};
+class Child : public Parent{
+public:
+	~Child(){cout << "in child\n";}
+};
 \end{lstlisting}
 
-
+如果指向父类的指针变量指向子类的一个实例并对此变量进行释放（通过delete语句），那么将只调用父类的析构函数。
 
 
 
 \begin{lstlisting}[language=C++]
-
+Parent *p = new Child();
+delete p;
+// in parent
 \end{lstlisting}
 
 
+如果父类的析构函数声明为virtual，那么父类的析构函数和子类的析构函数都将执行。
 
+在C++语言中，将析构函数声明为虚拟是一个良好的习惯。即使这个函数不执行任何行为，也可以避免以后创建子类时可能产生的错误。
 
 
 \begin{lstlisting}[language=C++]
