@@ -68,7 +68,6 @@ storableValue = new BitImage();
 从某种程度上来说，接口是一种近似于类的实体，因此Java和C++中的接口的概念和类的概念是密切相关的。
 
 
-
 \begin{lstlisting}[language=Java]
 
 \end{lstlisting}
@@ -102,4 +101,105 @@ storableValue = new BitImage();
 
 
 
+\section{Abstract Class}
 
+
+在面向对象编程语言中，接口与类有一些一致的地方，接口可以继承于其他接口，也可以继承于多个父接口。
+
+
+虽然继承类的规范和实现接口的规范并不完全相同，但它们非常相似，因此将使用继承这一术语来描述这两种行为。
+
+有些面向对象语言支持一种称为抽象方法（abstract method）的术语，它是一种介于类和接口之间的概念。例如，在Java和C\#语言中，类可以使用abstract关键字定义一个或多个方法，但不对这些方法进行实现。
+
+在创建类的实例之前，子类必须实现父类的每一个抽象方法，因此抽象方法的行为由父类进行指定，但是必须由子类来提供这些行为的实现。
+
+
+
+\begin{lstlisting}[language=Java]
+abstract class Window{
+	...
+	abstract public void paint(); // draw contents of window
+}
+\end{lstlisting}
+
+或者，也可以将整个类命名为抽象类，而不管这个类是否包含抽象方法。
+
+在使用时，禁止创建关于抽象类的实例，抽象类只能用于继承，从而作为其他类的父类。
+
+C++语言使用纯虚方法（pure virtual method）来表示抽象方法这个概念，并且通过赋值操作符来表示。
+
+\begin{lstlisting}[language=C++]
+class Window{
+public:
+	...
+	virtual void paint() = 0; // assignment makes it pure virtual
+};
+\end{lstlisting}
+
+类可以同时包含抽象（或纯虚）方法和非抽象方法，所有方法都声明为抽象（或纯虚）方法的类相当于Java语言中的接口的概念。
+
+
+即使一种语言不显式支持抽象方法这个概念，也可以通过其他方法进行模拟。例如，在Smalltalk语言中，用户经常定义一种调用时产生错误的方法，它将被子类中的方法所覆盖。
+
+\begin{lstlisting}[language=Java]
+writeTo: stream
+'$\uparrow$' self error: 'subclass must override writeTo'
+\end{lstlisting}
+
+实际上，并不能阻止创建该方法所处的类的实例，因此这种方法与真正的抽象方法并不相同。尽管可以创建这样的类实例，但是由于程序在调用方法时会失败，因此很容易检测这种错误。
+
+
+
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
+
+
+
+
+
+\begin{lstlisting}[language=Java]
+
+\end{lstlisting}
