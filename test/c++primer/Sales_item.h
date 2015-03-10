@@ -1,5 +1,5 @@
 #ifndef SALESITEM_H
-#define SALESITEM
+#define SALESITEM_H
 
 #include <iostream>
 #include <string>

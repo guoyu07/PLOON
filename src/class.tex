@@ -43,28 +43,73 @@
 类定义了数据成员和函数成员，其中：
 
 \begin{compactitem}
-\item 数据成员用于存储与类类型的对象相关联的状态；
+\item 数据成员用于存储与类类型的对象相关联的状态，应该仅在类的私有部分定义数据成员；
 \item 函数成员负责执行赋予数据意义的操作。
 \end{compactitem}
 
 类可以没有成员，也可以定义多个成员，成员可以是数据、函数或类型别名等，所有成员必须在类的内部声明。
 
 
-
 另外，类提供了一种特殊的成员函数——转换函数来定义类类型对象之间的隐式转换，从而使编译器可以对对象实现与内置类型一致的转换。
 
 
+
+除了定义数据和函数成员之外，类还可以定义自己的局部类型名字（或类型别名），最后以分号\footnote{按照C语言的传统，在类的定义之后接一个对象定义列表，因此类定义必须以分号结束。}结束类的定义。
+
+\begin{lstlisting}[language=C++]
+class Screen{
+public:
+	// interface member functions
+	typedef std::string::size_type index;
+private:
+	std::string contents;
+	index cursor;
+	index height, width;
+};
+\end{lstlisting}
+
+重载的成员函数和普通函数应用相同的规则：两个重载成员的形参数量和类型不能完全相同，调用非成员重载函数所用到的函数匹配过程也应用于重载成员函数的调用。
+
+\begin{compactitem}
+\item 成员函数可以被重载，但是只能重载所在类的其他成员函数。
+\item 成员函数与普通的非成员函数以及在其他类中声明的函数不相关，也不能重载它们。
+\end{compactitem}
+
 \subsection{Instance}
 
+用户在定义类实际上就是定义了一个类型，然后就可以和使用内置类型一样定义指定类型的对象。
 
 
-类描述了一些对象的行为规则，而这些对象就被称为该类的实例（instance），通常只有由类定义的操作可被用于对象。
+\begin{compactitem}
+\item 在类型定义阶段，编译器不进行存储分配；
+\item 在对象定义阶段，编译器就会为对象分配存储空间。
+\end{compactitem}
 
 
+\begin{lstlisting}[language=C++]
+class Screen{
+public:
+	// interface member functions
+	typedef std::string::size_type index;
+private:
+	std::string contents;
+	index cursor;
+	index height, width;
+};
+
+Screen item;
+\end{lstlisting}
 
 
+一般来说，类描述了一些对象的行为规则，而这些对象就被称为该类的实例（instance），通常只有由类定义的操作可被用于对象。
 
-类是与某个层的对象的最具体的类型，而且类还可以有运行时表示形式（元对象），这样就可以为操作与类相关的元数据提供运行时支持。
+
+\begin{compactitem}
+\item 类是与某个层的对象的最具体的类型，而且类还可以有运行时表示形式（元对象），这样就可以为操作与类相关的元数据提供运行时支持。
+\item 对象代表实际的存储空间，而且每个对象具有自己的类数据成员的副本。
+\end{compactitem}
+
+
 
 用户使用类来定义自己的抽象数据类型时，数据抽象能够隐藏对象的内部表示，同时仍然允许执行对象的公有（public）操作。
 
@@ -83,6 +128,8 @@
 封装层次更高的类也是一个封装的实体，其代表了若干成员的聚集，大多数（设计良好的）类类型都隐藏了实现该类型的成员。
 
 例如，标准库类型vector等同时具备数据抽象和封装的特性。数组在概念上类似于vector，但是既不是抽象的，也不是封装的，用户可以通过访问存放数组的内存来直接操作数据。
+
+并非所有类型都必须是抽象的，具体类会暴露而非隐藏其实现细节。例如标准库中的pair类就是一个实用的、设计良好的具体类（而不是抽象类），pair类型只是将两个数据成员捆绑成单个对象。
 
 
 自行车制造商一遍一遍地重用相同的蓝图来制造大量的自行车，开发人员可以使用相同的类（即相同的代码）来一遍一遍地建立对象。
@@ -155,6 +202,65 @@
 \item \textsl{从对象内部来看，方法通过修改对象的状态以及和其他对象的相互作用来提供适当的行为。}
 \end{compactitem}
 
+\chapter{Declaration}
+
+
+\section{Forward Declaration}
+
+
+用户在只声明一个C++类时称为前向声明（forward declaration），结果是在程序中引入了一个不完全类型（incompete type）的类类型，这样就可以用来编写相互依赖的类。
+
+不完全类型只能以有限方式使用，不能定义该类型的对象，因此不完全类型只能用于定义指向该类型的指针及引用，或者用于声明（而不是定义）使用该类型作为形参类型或返回类型的函数。
+
+
+
+在创建类的对象、使用引用或指针访问类的成员之前，必须完整地实现不完全类型的类类型，这样编译器才能给类的对象预定相应的存储空间。
+
+\begin{compactitem}
+\item 只有当类定义已经定义过，数据成员才能被指定为该类类型。
+\item 如果类是不完全类型，数据成员只能是指向该类类型的指针或引用。
+\end{compactitem}
+
+类不能具有自身类型的数据成员，但是可以具有指向自身类型的指针或引用的数据成员。
+
+\begin{lstlisting}[language=C++]
+class LinkScreen{
+	Screen window;
+	LinkScreen *next;
+	LinkScreen *prev;
+};
+\end{lstlisting}
+
+\section{Forward Definition}
+
+在实践中，有时需要两个或者更多的互相引用的类，这种形式称为相互递归（mutual recursion）。例如，在表示马和马车的关系时，每一匹马需要和自己的马车联系在一起，每一辆马车又需要有一匹马。
+
+很多语言都支持相互递归，例如Java语言在生成代码之前会扫描整个文件，这样如果程序文件的前面部分引用在文件后面声明的类，就不会产生任何冲突。
+
+其他的语言（例如C++）会从前到后地依次处理程序文件中的类和方法，因此名称在使用之前必须至少进行部分定义。
+
+
+在C++语言中必须实现向前定义（forward definition），其目的只是把这个名称置于循环中，关于定义的实现会在后面完成，这样马和马车的例子可能需要进行一定的修改。
+
+\begin{lstlisting}[language=C++]
+class Horse; // forward definition
+
+class Buggy{
+	...
+	Horse * myHorse;
+};
+
+class Horse{
+	...
+	Buggy* myBuggy;
+};
+\end{lstlisting}
+
+这里，首行仅仅表明Horse是一个类的名称，定义即将在后面出现。
+
+对于C++编译器来说，只需知道前向定义的相关信息才能允许创建指向未知类的指针。当然，在读取类定义之前，对象不能做任何事情。
+
+要解决这种问题，需要对类定义和与其相关的方法的实现仔细地排序：首先是第一个类的定义，然后是第二个类的定义，紧接着是第一个类的方法，最后是第二个类的方法。
 
 \chapter{Definition}
 
@@ -189,7 +295,7 @@ id anotherCard;		/* a dynamically typed veriable */
 
 \begin{compactitem}
 \item 如果使用的编程语言支持枚举（enum），那么可以使用枚举数据类型来表示花色。
-\item 如果使用的语言不支持枚举数据类型，则可以使用符号常量和从1~4的整数值来表示花色。
+\item 如果使用的语言不支持枚举数据类型，则可以使用符号常量和从1～4的整数值来表示花色。
 \end{compactitem}
 
 
@@ -213,6 +319,13 @@ private:
 	int rankValue;
 };
 \end{lstlisting}
+
+\begin{compactitem}
+\item 在一个给定的C++源文件中，一个类只能被定义一次。
+\item 在多个源文件中定义一个类时，每个源文件中的类定义必须是完全相同的。
+\end{compactitem}
+
+
 
 
 
@@ -260,6 +373,15 @@ enum Suits { Spade, Diamond, Club, Heart };
 
 
 在面向对象编程语言中都提供了一种方式用来区别以下这两种情况：一种是可以被类定义的外部（outside）了解和使用的特征，另一种是只能用于类定义内部（within）的特征。其中，后者由关键词private来表示，也就是说使用访问修饰符（public、private等）可以控制类的可视性和可操作性特征。
+
+如果类是用struct关键字定义的，则在第一个访问修饰符之前的成员都是公有的，如果类是用class关键字定义的，则这些成员都是私有的。
+
+\begin{compactitem}
+\item 类型的数据抽象视图由其public成员定义。
+\item private封装了类型的实现细节。
+\end{compactitem}
+
+
 
 
 在C++和C\#语言中，可以定义枚举数据类型来表示纸牌花色。其中，C++语言通过将定义语句放置在类中，可以清晰地表达这两种数据类型之间的联系。
@@ -417,56 +539,228 @@ END
 
 记录PlayingCardDesc包括数据字段，可以通过过程setFaceUp来修改数据字段，而过程setFaceUp作为接收器，必须得到关于纸牌的指针。
 
+\section{Context}
+
+
+成员函数有一个附加的隐含实参（this指针\footnote{C++类的成员函数具有一个附加的隐含形参，即指向类对象的一个this指针，与调用成员函数的对象绑定在一起。}）来将函数绑定到调用函数的对象。
+
+\begin{compactitem}
+\item 成员函数不能定义this形参，只能由编译器隐含地定义。
+\item 成员函数的函数体可以显式使用this指针。
+\end{compactitem}
+
+如果对类成员的引用没有限定，编译器将会把对隐含指针的引用处理成通过this指针的引用。
+
+在成员函数内部显式引用this通常是不必要的，只有一种情况下（即需要将一个对象作为整体引用而不是引用对象的一个成员）才必须显式引用this指针，最常见的就是函数需要返回对调用该函数的对象的引用。
+
+某些类的操作可能需要返回引用时就会使用this指针并返回*this。例如，在下面的Screen类中的单个表达式中调用move和set操作时，每个操作必须返回一个引用。
+
+\begin{lstlisting}[language=C++]
+class Screen{
+public:
+	// interface member functions
+	Screen& move(index r, index c);
+	Screen& set(char);
+	Screen& set(index, index, char);
+	// other members before
+};
+\end{lstlisting}
+
+这里，move和set函数的返回类型时Screen\&，说明它们返回对自身类类型的对象的引用，而且每个函数都返回调用自己的对象，这里就可以使用this指针来访问对象。
+
+
+下面set和move实现中，每个函数都返回*this，this本身是一个指向非常量Screen的指针，因此可以通过对this指针解引用来访问this指向的对象。
 
 \begin{lstlisting}[language=Oberon-2]
+Screen& Screen::set(char c)
+{
+	contents[cursor] = c;
+	return *this;
+}
+Screen& Screen::move(index r, index c)
+{
+	index row = r * width; // row location
+	cursor = row + c;
+	return *this;
+}
+\end{lstlisting}
+
+用户不能从const成员函数返回指向类对象的普通引用，而且const成员函数只能返回*this作为一个const引用。
+
+\begin{compactitem}
+\item 在普通的非const成员函数中，this的类型是一个指向类类型的const指针，可以改变this所指向的值，但是不能改变this所保存的地址。
+\item 在const成员函数中，this的类型是一个指向const类类型对象的const指针，既不能改变this所指向的对象，也不能改变this所保存的地址。
+\end{compactitem}
+
+例如，为了给Screen类增加一个display操作来在给定的ostream上打印contents，必须定义两个display操作，而且const对象只能使用const成员，非const对象可以使用任一成员。
+
+\begin{compactitem}
+\item 基于成员函数是否为const来重载成员函数；
+\item 基于指针形参是否指向const来重载成员函数。
+\end{compactitem}
+
+
+
+\begin{lstlisting}[language=C++]
+class Screen{
+public:
+	// interface member functions
+	// display overloaded on whether the object is const or not
+	Screen& display(std::ostream &os)
+	{
+		do_display(os);
+		return *this;
+	}
+	Screen& display(std::ostream &os) const
+	{
+		do_display(os);
+		return *this;
+	}
+private:
+	// single function to do the work of displaying a Screen,
+	// will be called by the display operations
+	void do_display(std::ostream &os) const
+	{
+		os << contents;
+	}
+	// as before
+};
+\end{lstlisting}
+
+\section{Scope}
+
+每个类都定义了自己的新作用域和唯一的类型，在类的定义体内声明类成员，将成员名引入类的作用域，而且两个不同的类具有两个不同的作用域。
+
+即使两个类具有完全相同的成员列表，它们也是不同的类型，每个类的成员不同于任何其他类（或任何其他作用域）的成员。
+
+
+\begin{lstlisting}[language=C++]
+class First{
+public:
+	int memi;
+	double memd;
+};
+class Second{
+public:
+	int memi;
+	double memd;
+};
+
+Frist obj1;
+Second obj2;
+obj2 = obj1; // error, obj1 and obj2 have different types
+\end{lstlisting}
+
+在类作用域之外，成员只能通过对象或指针分别使用成员访问操作符（.或->）进行访问，而且成员访问操作符的左边的操作数分别是一个类对象或指向类对象的指针，跟在操作符后面的成员名字必须在相关联的类的作用域中声明。
+
+
+
+
+\begin{lstlisting}[language=C++]
+Class obj;
+Class *ptr = &obj;
+ptr->member;
+obj.member;
+ptr->memfcn();
+obj.memfcn();
+\end{lstlisting}
+
+除了使用成员访问操作符来访问成员之外，也可以直接通过类使用作用域操作符（::）来访问，一般的数据或函数成员必须通过对象来访问。
+
+在类的定义体之外出现的成员定义必须指明成员所在的类，而且形参表和成员函数体都出现在函数名之后，但是它们仍然属于类的作用域，因此可以不用限定而引用其他成员。
+
+\begin{lstlisting}[language=C++]
+double Sales_item::avg_price() const
+{
+	if(units_sold)
+		return revenue/units_sold;
+	else
+		return 0;
+}
+\end{lstlisting}
+
+与形参类型相比，返回类型出现在成员名字前面，并且需要遵循如下规定：
+
+\begin{compactitem}
+\item 如果函数在类定义体之外定义，则用于返回类型的名字在类作用域之外；
+\item 如果返回类型使用由类定义的类型，则必须使用完全限定名。
+\end{compactitem}
+
+\begin{lstlisting}[language=C++]
+class Screen{
+public:
+	typedef std::string::size_type index;
+	index get_cursor() const;
+};
+inline Screen::index Screen::get_cursor() const
+{
+	return cursor;
+}
+\end{lstlisting}
+
+在类的作用域中进行名字查找\footnote{名字查找（name lookup）是寻找与给定的名字使用相匹配的声明的过程。}时，首先在使用该名字的块中查找名字的声明，如果找不到则在包围的作用域中查找，在找不到任何声明的情况下将报错。
+
+实际上，C++类定义在两个阶段中处理，在第一阶段中编译成员声明，在所有成员出现之后才编译它们的定义本身，因此C++要求所有名字必须在使用之前声明，
+
+类作用域中使用的名字并非
+
+\begin{lstlisting}[language=C++]
 
 \end{lstlisting}
 
 
 
 
-\begin{lstlisting}[language=Oberon-2]
+\begin{lstlisting}[language=C++]
+
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=C++]
 
 \end{lstlisting}
 
 
 
 
-\begin{lstlisting}[language=Oberon-2]
+\begin{lstlisting}[language=C++]
 
 \end{lstlisting}
 
 
 
-
-\begin{lstlisting}[language=Oberon-2]
-
-\end{lstlisting}
-
-
-
-
-\begin{lstlisting}[language=Oberon-2]
+\begin{lstlisting}[language=C++]
 
 \end{lstlisting}
 
 
-
-
-\begin{lstlisting}[language=Oberon-2]
-
-\end{lstlisting}
 
 \subsection{C++}
 
 C++中的类可以控制在初始化、复制、赋值和销毁对象时发生的操作，用户使用类可以为要解决的问题定义定制的数据类型，从而方便开发易于理解的应用程序。
 
-一般情况下，C++类定义在以.h结尾的头文件中，要使用类的任何程序都必须使用\#include命令包含头文件。
+一般情况下，C++类定义在以.h结尾的头文件中，要使用类的任何程序都必须使用\#include命令包含头文件，从而保证在每个使用类的文件中都以同样的方式来定义类。
 
 \begin{compactitem}
 \item 每个类定义一种类型，类型名与类名相同；
 \item 内置类型和类类型都可以定义变量。
 \end{compactitem}
+
+使用头文件保护符（header guard）可以保证即使头文件在同一个文件中被包含多次，类定义也只会出现一次。
+
+\begin{lstlisting}[language=C++]
+#ifndef SALESITEM_H
+#define SALESITEM_H
+
+#include <iostream>
+#include <string>
+class Sales_item{
+...
+};
+#endif
+\end{lstlisting}
+
 
 按照惯例，头文件存储类类型的定义，而且头文件名和类名一样，头文件可以以.h、.H、.hpp或.hxx等后缀名。
 
@@ -477,13 +771,57 @@ C++中的类可以控制在初始化、复制、赋值和销毁对象时发生�
 \item 在类外部定义的成员函数必需必须指明所在类的作用域。
 \end{compactitem}
 
-成员函数有一个附加的隐含实参来将函数绑定到调用函数的对象。
+
 
 如果将关键字const放在形参表之后，就可以将成员函数声明为常量，const成员不能改变其所操作的对象的数据成员。
 
 \begin{quote}
 \texttt{const必须同时出现在声明和定义中，否则就会出现一个编译时错误。}
 \end{quote}
+
+在类内部定义的成员函数（例如不接受实参的get函数）将自动作为inline处理，也就是说，当编译器在它们被调用时将试图在同一行内扩展它们，也可以显式地将成员函数声明为inline。
+
+\begin{lstlisting}[language=C++]
+class Screen{
+public:
+	typedef std::string::size_type index;
+	char get() const { return contents[cursor]; }
+	inline char get(index  ht, index wd) const;
+	index get_cursor() const;
+	...
+};
+
+char Screen::get(index r, index c) const
+{
+	index row = r * width;
+	return contents[row+c];
+}
+inline Screen::index Screen::get_cursor() const
+{
+	return cursor;
+}
+\end{lstlisting}
+
+用户在声明和定义处指定inline都是合法地，而且在类的外部定义inline可以使类容易阅读。
+
+\begin{compactitem}
+\item 在类定义体内部的声明中指定成员为inline；
+\item 在类定义体外部的定义中指定成员为inline。
+\end{compactitem}
+
+inline成员函数的定义必须在调用该函数的每个源文件中时可见的，通常应该将不在类定义体内定义的inline成员函数的定义放在有类定义的同一头文件中。
+
+用户在定义了类类型之后，可以按照以下两种等价的方式使用。
+
+\begin{compactitem}
+\item 将类的名字直接用作类型名；
+\item 指定关键字class或struct，后跟类的名字。
+\end{compactitem}
+
+\begin{lstlisting}[language=C++]
+Screen screen;
+class Screen screen;
+\end{lstlisting}
 
 
 
@@ -557,36 +895,7 @@ end
 
 
 
-\section{Forward Definition}
 
-在实践中，有时需要两个或者更多的互相引用的类，这种形式称为相互递归（mutual recursion）。例如，在表示马和马车的关系时，每一匹马需要和自己的马车联系在一起，每一辆马车又需要有一匹马。
-
-很多语言都支持相互递归，例如Java语言在生成代码之前会扫描整个文件，这样如果程序文件的前面部分引用在文件后面声明的类，就不会产生任何冲突。
-
-其他的语言（例如C++）会从前到后地依次处理程序文件中的类和方法，因此名称在使用之前必须至少进行部分定义。
-
-
-在C++语言中必须实现向前定义（forward definition），其目的只是把这个名称置于循环中，关于定义的实现会在后面完成，这样马和马车的例子可能需要进行一定的修改。
-
-\begin{lstlisting}[language=C++]
-class Horse; // forward definition
-
-class Buggy{
-	...
-	Horse * myHorse;
-};
-
-class Horse{
-	...
-	Buggy* myBuggy;
-};
-\end{lstlisting}
-
-这里，首行仅仅表明Horse是一个类的名称，定义即将在后面出现。
-
-对于C++编译器来说，只需知道前向定义的相关信息才能允许创建指向未知类的指针。当然，在读取类定义之前，对象不能做任何事情。
-
-要解决这种问题，需要对类定义和与其相关的方法的实现仔细地排序：首先是第一个类的定义，然后是第二个类的定义，紧接着是第一个类的方法，最后是第二个类的方法。
 
 \section{Nested Class}
 
@@ -1149,7 +1458,9 @@ C++程序员既可以将方法作为类定义的一部分，定义成内联（in
 
 
 
-把方法体放在类定义之外有两个原因。首先，多余一条语句的方法体会使类定义的其他特征变得模糊，因此移开代码比较长的方法体可以改善程序的可读性。只是，可读性是针对观察者的，而不是所有的用户都认为这种分离可以提高程序的可读性，因为这样做之后，用户就必须到两个不同的地方去查找方法的主体。第二个原因涉及到语义。当方法体在一个类定义内部被声明时，C++编译器就可以直接将其作为内联方法进行扩展，而无需建立函数调用。这样，内联方法比函数调用和方法体的结合形式执行起来更加快速。
+把方法体放在类定义之外有两个原因。首先，多余一条语句的方法体会使类定义的其他特征变得模糊，因此移开代码比较长的方法体可以改善程序的可读性。只是，可读性是针对观察者的，而不是所有的用户都认为这种分离可以提高程序的可读性，因为这样做之后，用户就必须到两个不同的地方去查找方法的主体。
+
+第二个原因涉及到语义。当方法体在一个类定义内部被声明时，C++编译器就可以直接将其作为内联方法进行扩展，而无需建立函数调用，这样内联方法比函数调用和方法体的结合形式执行起来更加快速。
 
 
 在C++语言程序中，通常不会在同一个文件中同时出现类定义和较大的方法体。
@@ -1469,6 +1780,27 @@ public class PlayingCard{
 
 \end{lstlisting}
 
+\section{Mutable}
+
+如果希望类的数据成员（包括在const成员函数内）可以修改，可以将它们声明为mutable。
+
+可变数据成员永远都不能为const，因此const成员函数可以改变mutable成员，需要使用关键字mutable来声明数据成员。
+
+\begin{lstlisting}[language=C++]
+class Screen{
+public:
+// interface member functions
+private:
+	mutable size_t access_ctr; // may change in const members
+	// other data members as before
+};
+\end{lstlisting}
+
+
+
+
+
+
 
 \chapter{Field}
 
@@ -1605,7 +1937,7 @@ p.add(new ButtonAdapter("Quit"){
 
 \chapter{Constructor}
 
-构造函数（construtor）是用来初始化一个新创建对象的方法。
+构造函数（construtor）是用来初始化一个新创建对象的方法，而且构造函数本身可以重载。
 
 \begin{compactitem}
 \item 构造函数用于给每个数据成员设置适当的初始值；
