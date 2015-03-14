@@ -702,31 +702,97 @@ inline Screen::index Screen::get_cursor() const
 
 实际上，C++类定义在两个阶段中处理，在第一阶段中编译成员声明，在所有成员出现之后才编译它们的定义本身，因此C++要求所有名字必须在使用之前声明，
 
-类作用域中使用的名字并非
+类作用域中使用的名字并非必须是类成员名，也会发现在其他作用域中声明的名字。
 
-\begin{lstlisting}[language=C++]
+在名字查找期间，如果类作用域中使用的名字不能确定为类成员名，则在包含该类或成员定义的作用域中查找以便找到该名字的声明。
 
-\end{lstlisting}
-
-
-
-
-\begin{lstlisting}[language=C++]
-
-\end{lstlisting}
+\begin{compactitem}
+\item 用户必须在类中先定义类型名字，才能将它们作为数据成员的类型，或者成员函数的返回类型或形参类型。
+\item 编译器按照成员声明在类中出现的次序来处理它们，通常名字必须在使用之前进行定义，而且名字不能被重复定义。
+\end{compactitem}
 
 
 
-\begin{lstlisting}[language=C++]
+类成员声明的名字查找按以下方式进行确定：
 
-\end{lstlisting}
-
+\begin{compactitem}
+\item 检查出现名字使用之前的类成员的声明。
+\item 检查包含类定义的作用域中出现的声明以及出现在类定义之前的声明。
+\end{compactitem}
 
 
 
 \begin{lstlisting}[language=C++]
-
+typedef double Money;
+class Account{
+public:
+	Money balance() { return bal; }
+private:
+	Money bal;
+	typedef long double Money; // error: cannot change meaning of Money
+	// ...
+	
+};
 \end{lstlisting}
+
+类成员定义中的名字查找按以下方式进行确定：
+
+\begin{compactitem}
+\item 首先检查成员函数局部作用域中的声明。
+\item 如果在成员函数中找不到该名字的声明，则检查对所有类成员的声明。
+\item 如果在类中找不到该名字的声明，则检查在此成员函数定义之前的作用域中出现的声明。
+\end{compactitem}
+
+如果屏蔽了类的成员，用户仍然可以通过用类名来限定成员名或显式使用this指针来使用类的成员。不过，更好的方式还是应该为形参取一个不同的名字。
+
+
+\begin{lstlisting}[language=C++]
+// bad practice: Names local to member functions shoudn't hide member names
+void dummy_fcn(index height){
+	cursor = width * this->height; // member height
+	// alternative way to indicate the member
+	cursor = width * Screen::height; // member height
+}
+// good practice: Don't use member name for a parameter or other local variable
+void dummy_fcn(index ht){
+	cursor = width * height; // member height
+}
+\end{lstlisting}
+
+编译器无法在函数或类作用域中找到成员名字时，就会进一步在外围作用域（即全局对象）中查找。即使屏蔽了全局对象，仍然可以通过用全局作用域确定操作符来限定名字来使用它。
+
+\begin{lstlisting}[language=C++]
+// bad practice: Don't hide name that are needed from surrounding scopes
+void dummy_fcn(index height){
+	cursor = width * ::height; // global height
+}
+\end{lstlisting}
+
+当成员定义在类定义的外部时，名字查找不仅要考虑类定义之前的全局作用域中的声明，而且要考虑在成员函数定义之前出现的全局作用域声明。
+
+
+
+
+\begin{lstlisting}[language=C++]
+class Screen{
+public:
+	// ...
+	void setHeight(index);
+private:
+	index height;
+};
+
+Screen::index verify(Screen::index);
+
+void Screen::setHeight(index var){
+	// var: refers to the parameter
+	// height: refers to the class member
+	// verify: refers to the global function
+	height = verify(var);
+}
+\end{lstlisting}
+
+
 
 
 
@@ -1676,6 +1742,81 @@ int cardrank = [ aCard getRank ];
 
 CLOS语言中的语法遵循传统的Lisp语法。Lisp语言中的所有表达式都写成以圆括号为边界的列表。操作是列表的第一个元素，紧接着是参数。接收器是第一个参数。
 
+\section{Friend}
+
+在某些情况下，用户可以通过被重载的操作符等来允许特定的非成员函数访问一个类的私有成员，同时仍然阻止一般地访问。例如，用户可以重载输入/输出操作符（>>和<<）来访问类的私有数据成员，而且这些操作符不可能是类的成员，但是它们仍然是类的“接口的组成部分”。
+
+C++语言的友元（friend）机制允许一个类将对其非公有成员的访问权授予指定的函数或类。
+
+友元的声明以关键字friend开始，只能出现在类定义的内部，并且不受其声明位置的访问控制影响，因此通常将友元声明成组地放置在类定义的开始或结尾。
+
+在下面的示例中，窗口管理器类Window管理给定显示器上的一组Screen，在逻辑上Window类可能需要访问由其管理的Screen对象的内部数据。
+
+
+
+\begin{lstlisting}[language=C++]
+class Screen{
+	// Window members can access private parts of class Screen
+	friend class Window;
+	// ...
+};
+\end{lstlisting}
+
+友元可以是普通的非成员函数，或其他类的成员函数，或者整个类。例如，在将一个类设为友元时，友元类的所有成员函数都可以访问授予友元关系的类的非公有成员。
+
+这里，与Screen类是友元关系的Window类的成员就可以直接引用Screen的私有成员。例如，Window提供了一个函数来重定位一个Screen。
+
+
+\begin{lstlisting}[language=C++]
+Window&
+Window::relocate(Screen::index r, Screen::index c, Screen& s)
+{
+	// refer to height and width
+	s.height += r;
+	s.width = c;
+	return *this;
+}
+\end{lstlisting}
+
+另外，用户也可以使用函数所属的类的方式来指定只允许特定的成员函数访问类的成员。
+
+\begin{lstlisting}[language=C++]
+class Screen{
+	// Window must be defined before class Screen
+	friend Window& Window::relocate(Window::index, Window::index, Screen&);
+	// ...
+};
+\end{lstlisting}
+
+为了正确地构造类，需要注意友元声明与友元定义之间的相互依赖，因此必须在定义包含成员函数的类之后才能将其成员函数设为友元。不过，不必预先声明类和非成员函数来将它们设为友元。
+
+友元声明将已命名的类或非成员函数引入到外围作用域中，友元函数可以在类的内部定义，而且友元函数的作用域扩展到包围包围类定义的作用域。
+
+使用友元引入的类名和函数（定义或声明）可以和类本身预先声明的一样使用。
+
+\begin{lstlisting}[language=C++]
+class X{
+	friend class Y;
+	friend void f(){}
+};
+class Z{
+	Y *ymem;
+	void g(){return ::f();}
+};
+\end{lstlisting}
+
+类必须将重载函数集中在每一个希望设为友元的函数都声明为友元。
+
+\begin{lstlisting}[language=C++]
+extern std::ostream& storeOn(std::ostream &, Screen &);
+extern BitMap& storeOn(BitMap &, Screen &);
+class Screen{
+	// ostream version of storeOn may access private parts of Screen objects
+	friend std::ostream& storeOn(std::ostream &, Screen &);
+	// ...
+};
+\end{lstlisting}
+
 
 
 \chapter{Property}
@@ -1753,6 +1894,10 @@ public class PlayingCard{
 
 在C\#程序中，属性通常是无参数且返回惟一值的函数。
 
+
+
+
+
 \subsection{C++}
 
 
@@ -1798,7 +1943,113 @@ private:
 
 
 
+\section{Static}
 
+
+
+对于特定类类型的全体对象而言，访问一个全局对象有时是必要的。例如，在程序的任意点需要统计已创建的对象的数量，或者全局对象可能是指向类的错误处理例程的一个指针，或者全局对象是指向类类型对象的内存自由存储区的一个指针。
+
+全局对象的问题在于它可能会破坏封装，对象需要支持特定类抽象的实现，因此类可以定义类静态成员来提供全局对象的功能。
+
+
+\begin{compactitem}
+\item 非static数据成员存在于类类型的每个对象中。
+\item static数据成员独立于类的任意对象而存在。
+\end{compactitem}
+
+用户可以在类的成员声明前加上关键字static来定义static数据成员和static成员函数，而且static成员遵循正常的公有/私有访问规则。
+
+
+\begin{compactitem}
+\item static数据成员是与类关联的对象，并不与类的对象相关联。
+\item static成员函数没有this形参，它可以直接访问所属类的static成员，但是不能直接使用非static成员。
+\end{compactitem}
+
+相比全局对象，static成员具有如下三个优点：
+
+\begin{compactenum}
+\item static成员的名字在类的作用域中，可以避免与其他类的成员或全局对象名字冲突。
+\item static成员可以是私有成员，因此可以实施封装，但是全局对象不可以。
+\item static成员与特定类关联。
+\end{compactenum}
+
+例如，在设计一个简单的表示银行账户的类时，每个账户具有余额和所有人，并且按月计算利息，不过应用于每个账户的利率总是相同的。
+
+\begin{lstlisting}[language=C++]
+class Account{
+public:
+	// interface functions
+	void applyint() { amount += amount * interestRate; }
+	static double rate(){ return interestRate; }
+	static void rate(double); // sets a new rate
+private:
+	std::string owner;
+	double amount;
+	static double interestRate;
+	static double initRate();
+};
+\end{lstlisting}
+
+用户可以通过作用域操作符从类直接调用static成员，或者通过对象、引用或指向该类类型对象的指针间接调用。
+
+\begin{lstlisting}[language=C++]
+Account ac1;
+Account *ac2 = &ac1;
+// equivalent ways to call the static member rate function
+double rate;
+rate = ac1.rate();
+rate = ac2->rate();
+rate = Account::rate();
+\end{lstlisting}
+
+\subsection{Static Method}
+
+在类的外部定义static成员时，无须重复指定static保留字，而且该保留字只出现在类定义体内部的声明处。
+
+\begin{lstlisting}[language=C++]
+void Account::rate(double newRate)
+{
+	interestRate = newRate;
+}
+\end{lstlisting}
+
+static成员是类的组成部分但不是任何对象的组成部分，因此static成员函数没有this指针，如果使用非static成员显式或隐式地引用this将导致编译时错误。
+
+static成员不是任何对象的组成部分，因此static成员函数不能被声明为const，也不能被声明为虚函数。
+
+\subsection{Static Member}
+
+static数据成员可以声明为任意类型，可以是常量、引用、数组、类类型等，不过static数据成员必须在类定义体的外部定义（正好一次\footnote{在实际开发中，保证对象正好定义一次的最好办法就是将static数据成员的定义放在包含类的非内联成员函数定义的文件中。}）。
+
+与普通数据成员不同，static成员不通过类的构造函数进行初始化，而且需要在定义时进行初始化。
+
+在类定义体外部引用类的static成员时，必须指定成员是在哪个类中定义的，static关键字只能用于类定义体内部的声明中，定义不能标示为static。
+
+一般情况下，类的static成员不能在类的定义体中声明时进行初始化，通常只有在定义时才初始化。不过，只要初始化式是一个常量表达式，那么整型const static数据成员就可以在类的定义体中进行初始化，但是const static数据成员仍然必须在类的定义体外部进行定义。
+
+
+
+\begin{lstlisting}[language=C++]
+class Account{
+public:
+	static double rate(){ return interestRate; }
+	static void rate(double); // sets a new rate
+private:
+	static const int period = 30; // interest posted every 30 days
+	double daily_tbl[period];
+};
+\end{lstlisting}
+
+这里，使用常量值初始化的整型const static数据成员就是一个常量表达式，它也可以用于任何需要常量表达式的地方。
+
+
+在类内部提供初始化式时，成员的定义不必再指定初始值。
+
+\begin{lstlisting}[language=C++]
+// definition of static member with no initializer
+// the initial value is specified inside the class definition
+const int Accout::period;
+\end{lstlisting}
 
 
 
@@ -1937,12 +2188,35 @@ p.add(new ButtonAdapter("Quit"){
 
 \chapter{Constructor}
 
-构造函数（construtor）是用来初始化一个新创建对象的方法，而且构造函数本身可以重载。
+
+\section{Overview}
+
+
+构造函数（construtor）是用来初始化一个新创建对象的成员函数，而且构造函数本身可以重载\footnote{构造函数和普通函数一样，可以为一个类声明的构造函数的数量没有限制，而且可以没有形参，也可以定义多个形参，区别只是构造函数不能指定返回类型。}。
 
 \begin{compactitem}
 \item 构造函数用于给每个数据成员设置适当的初始值；
 \item 构造函数应用初始化列表来初始化对象的数据成员。
 \end{compactitem}
+
+只要用户创建类类型的新对象，就需要执行构造函数，因此构造函数的作用就是在创建类类型的对象时保证每个对象的数据成员获得合适的初始值。
+
+例如，在下面类定义中，构造函数Sales\_item()使用其初始化列表来初始化units\_sold和revenue成员，isbn成员由string的默认构造函数隐式初始化为空串。
+
+
+\begin{lstlisting}[language=C++]
+class Sales_item{
+public:
+	// operations on Sales_item objects
+	// default constructor needed to initialize members of built-in type
+	Sales_item(): units_sold(0), revenue(0.0) { }
+private:
+	std::string isbn;
+	unsigned units_sold;
+	double revenue;
+};
+\end{lstlisting}
+
 
 构造函数的初始化列表由成员名和带括号的初始值组成，跟在构造函数的形参表后面，并以冒号开头。
 
@@ -1951,13 +2225,30 @@ p.add(new ButtonAdapter("Quit"){
 Sales_item(): units_sold(0), revenue(0.0) {}
 \end{lstlisting}
 
-把创建和初始化联系起来可以确保对象在正确地初始化之前不会被使用。当创建和初始化分离时或者说没有构造函数时，用户在创建新对象之后，很容易忘记调用初始化例程，这样通常会导致不良后果。
+只要每个构造函数的形参表是唯一的，那么可以为一个类声明的构造函数的数量没有限制，而且不同的构造函数允许用户指定不同的方式来初始化数据成员。
 
-在同一个对象上调用两次初始化过程，这通常也会引起一定的麻烦，通过使用构造函数就可以避免这个问题。
+\begin{lstlisting}[language=C++]
+class Sales_item{
+// other members as before
+public:
+	// added constructors to initialize from a string or an istream
+	Sales_item(const std::string&);
+	Sales_item(std::istream&);
+	Sales_item();
+};
+\end{lstlisting}
 
-构造函数执行两项主要任务—内存分配和初始化，从而确保所有得以分配内存的对象都可以被正确地初始化。
 
-在Java和C++语言中，可以通过检查与类显示的名称是否相同来识别构造函数和普通方法的区别。另外，构造函数和普通方法的另一个细微的区别是构造函数不声明返回值的数据类型。
+用户只有把创建和初始化联系起来才可以确保对象在正确地初始化之前不会被使用。假设创建和初始化分离时或者说没有构造函数，那么用户在创建新对象之后，可能就很容易忘记调用初始化例程，这样通常会导致不良后果。
+
+在同一个对象上调用两次初始化过程，通常也会引起一定的麻烦，通过使用构造函数就可以避免这个问题。
+
+构造函数的名字与类的名字相同，并且不能指定返回类型，构造函数执行两项主要任务—内存分配和初始化，从而确保所有得以分配内存的对象都可以被正确地初始化。
+
+Java和C++语言可以通过检查与类显示的名称是否相同来识别构造函数和普通方法的区别，而且在定义新对象时传递给构造函数的实参决定了使用指定的构造函数。
+
+
+另外，构造函数和普通方法的另一个细微的区别是构造函数不声明返回值的数据类型。
 
 \begin{lstlisting}[language=Java]
 class PlayingCard{ // a Java constructor
@@ -1971,7 +2262,7 @@ class PlayingCard{ // a Java constructor
 \end{lstlisting}
 
 
-当使用new操作符进行内存分配时，构造函数所需的参数紧随在类名之后。
+当使用new操作符进行内存分配时，构造函数所需的参数紧随在类名之后，而且编译器会自动调用对应的构造函数。
 
 
 \begin{lstlisting}[language=Java]
@@ -1992,9 +2283,20 @@ class Complex{ // complex numbers
 }
 \end{lstlisting}
 
-在C++语言中，也使用类似的语法来声明静态（static）数据变量和/或常量（const）。
+在C++语言中，也使用类似的语法来声明静态（static）数据变量和/或常量（const），但是构造函数不能声明为const。
 
-在C++、C\#和Java语言中，只要每个函数参数的数目、类型或次序不同，就允许多个函数使用相同的名称定义。构造函数经常使用这种定义方式，例如一个构造函数为无参数函数，而另一个构造函数为有参数函数。
+
+\begin{lstlisting}[language=Java]
+class Sales_item{
+public:
+	Sales_item() const; // error
+};
+\end{lstlisting}
+
+当创建类类型的const对象时就会执行一个普通构造函数来初始化产生的const对象，因此定义const构造函数是不必要的，而且实际上不管对象是否为const都使用同一个构造函数来初始化对象。
+
+
+另外，C++、C\#和Java语言中只要每个函数参数的数目、类型或次序不同，就允许多个函数使用相同的名称定义，因此构造函数也使用重载方式进行定义。例如，一个构造函数为无参数函数，而另一个构造函数为有参数函数。
 
 
 \begin{lstlisting}[language=C++]
@@ -2056,7 +2358,7 @@ PlayingCard *cardEight = new PlayingCard; // C++
 
 
 
-在C++语言中，构造函数可以使用与其他语言稍有不同的语法初始化数据成员，并且可以将这种冒号后跟着变量名称和括号括起来的初始值所组成的结构称为初始化器（initializer）。
+在C++语言中，构造函数可以使用与其他语言稍有不同的语法初始化数据成员，并且可以将这种冒号后跟着变量名称和括号括起来的初始值所组成的数据成员列表称为初始化器（initializer）。
 
 
 \begin{lstlisting}[language=C++]
@@ -2070,6 +2372,29 @@ public:
 \end{lstlisting}
 
 对于针对整数等简单数值，使用初始化器与在构造函数体中使用赋值语句是没有区别的。但是，还有其他各种不同形式的初始化，只能通过C++语言中的初始化器来实现。
+
+
+\begin{lstlisting}[language=C++]
+// recommanded way to write constructors using a constructor initializer
+Sales_item::Sales_item(const string &book):
+	isbn(book), units_sold(0), revenue(0) {}
+\end{lstlisting}
+
+构造函数和普通函数一样都可以定义在类的内部或外部，而且构造函数初始化器只在构造函数的定义中而不是声明中指定。
+
+在使用C++语言定义的类中，省略初始化器并在构造函数的函数体内对数据成员赋值是合法的。例如，下面是一个接受一个string的Sales\_item构造函数的改写形式：
+
+\begin{lstlisting}[language=C++]
+// legal but sloppier way to write the constructor
+// no constructor initializer
+Sales_item::Sales_item(const string &book){
+	isbn = book;
+	units_sold = 0;
+	revenue = 0.0;
+}
+\end{lstlisting}
+
+
 
 在Objective-C语言中，构造函数不需要与类同名，它们可以通过使用位于函数定义之前的加号“+”而非减号“-”来标识。这样的函数称为工厂方法（factory method）。工厂方法使用new操作符执行实际的内存分配，然后执行初始化对象所需的所有行为。
 
@@ -2130,7 +2455,7 @@ aCard := TPlayingCard.Create(Spade, 4);
 \item[缺省构造函数] 当建立的对象没有指定参数值时调用的构造函数，用于在内部初始化对象和数据成员。
 \item[拷贝构造函数] 在实现按赋值参数调用（call-by-value parameter）时使用。
 \item[赋值操作符] 用来把一个值赋给另外一个对象。
-\item[析构函数（destructor）] 当对象被删除时调用此函数。
+\item[析构函数] 当对象被删除时调用此函数。
 \end{description}
 
 缺省构造函数仅仅是一个无参数构造函数，拷贝构造函数以一个类实例的引用作为参数，并将对象自身初始化为参数的拷贝。
@@ -2247,12 +2572,184 @@ aBox.setValue(12); //as often as you like
 在C++语言中，使用const修饰符声明的变量禁止以任何方式进行修改，即使是处于对象的内部状态（个别的数据字段可以命名为mutable，这时即使数据字段处于一个常量对象内，也可以进行改变，只是这种情况很少见）。
 
 
+\subsection{Sequence}
+
+只要定义一个对象时没有提供初始化式，就会使用默认构造函数，而且为所有形参提供默认实参的构造函数也定义了默认构造函数。
+
+\begin{compactitem}
+\item 只有当一个类没有定义构造函数时，编译器才会自动生成一个默认构造函数。
+\item 只要一个类定义了一个构造函数，编译器就不会再生成默认构造函数。
+\end{compactitem}
+
+构造函数初始化器仅指定用于初始化成员的值，并不指定初始化执行的次序，因此每个成员在构造函数初始化器中只能出现一次，而且被初始化的次序就是定义成员的次序。
+
+在某些情况下，默认构造函数是由编译器隐式应用的，如果类没有默认构造函数，则该类就不能用在这些环境中，类通常应该定义一个默认构造函数。
+
+实际上，如果定义了其他构造函数，则提供一个默认构造函数几乎总是对的，通常在默认构造函数中给成员提供的初始值应该指出该对象是“空”的。
+
+假定有一个NoDefault类，它没有定义自己的默认构造函数，不过有一个接受一个string实参的构造函数，NoDefault类没有默认构造函数就意味着：
+
+\begin{compactenum}
+\item 具有NoDefault成员的每个类的每个构造函数，必须通过传递一个初始的string值给NoDefault构造函数来显式地初始化NoDefault成员。
+\item 编译器不会为具有NoDefault类型成员地类合成默认构造函数，如果需要提供默认构造函数就必须显式地定义，并且默认构造函数必须显式地初始化其NoDefault成员。
+\item NoDefault类型不能用作动态分配数组地元素类型。
+\item NoDefault类型的静态分配数组必须为每个元素提供一个显式的初始化式。
+\item 存储NoDefault对象的容器（例如vector）不能使用接受容器大小而没有同时提供一个元素初始化式的构造函数。
+\end{compactenum}
+
+
+
+除非一个成员根据其他成员来进行初始化，否则成员初始化的次序是无关紧要的，因此应该尽量按照与成员声明一致的次序编写构造函数初始化器，并且尽可能避免使用成员来初始化其他成员。
+
+一般情况下，通过（重复）使用构造函数的形参而不是使用对象的数据成员，可以避免由初始化式的执行次序引起的任何问题。
+
+合成的默认构造函数（synthesized default constructor）使用与变量初始化相同的规则来初始化成员。
+
+\begin{compactitem}
+\item 具有类类型的成员通过运行各自的默认构造函数来进行初始化。
+\item 内置和复合类型的成员（例如指针和数组）只对定义再全局作用域中的对象进行初始化。
+\item 当对象定义在局部作用域中时，内置或复合类型的成员不进行初始化。
+\end{compactitem}
+
+如果类包含内置或复合类型的成员，则该类不应该依赖于合成的默认构造函数，而是应该定义自己的构造函数来初始化这些成员。
+
+此外，每个构造函数应该为每个内置或复合类型的成员提供初始化式，没有初始化内置或复合类型成员的构造函数，将使那些成员处于未定义的状态。
+
+除了作为赋值的目标之外，以任何方式使用一个未定义的成员都是错误的。如果每个构造函数将每个成员设置为明确的已知状态，则成员函数可以区分空对象和具有实际值的价值。
+
+
+初始化式可以是任意表达式，在指定实参并传递给成员类型时，可以使用对应的任意构造函数。
+
+\begin{lstlisting}[language=C++]
+Sales_item(const std::string &book, int cnt, double price):
+	isbn(book), units_sold(cnt), revenue(cnt * price) { }
+\end{lstlisting}
+
+\subsection{Casting}
+
+\begin{compactitem}
+\item 为了定义到类类型的隐式转换，需要定义合适的构造函数，可以使用单个实参来调用的构造函数就定义了从形参类型到类类型的隐式转换。
+\item 为了抑制由构造函数定义的隐式转换，可以通过将构造函数声明为explicit来防止在需要隐式转换的上下文中使用构造函数。
+\end{compactitem}
+
+
+
+
+\begin{lstlisting}[language=C++]
+class Sales_item{
+public:
+	// default argument for book is the empty string
+	explicit Sales_item(const std::string &book=""):
+		isbn(book), units_sold(0), revenue(0.0){}
+	explicit Sales_item(std::istream &is);
+	// ...
+};
+\end{lstlisting}
+
+explicit关键字只能用于类内部的构造函数声明中，在类的定义体外部所作的定义上不再使用它，否则就会产生错误。
+
+\begin{lstlisting}[language=C++]
+// error: explicit allowed only on constructor declaration in class header
+explicit Sales_item::Sales_item(istream& is)
+{
+	is >> *this; // uses Sales_item input operator to read the members
+}
+\end{lstlisting}
+
+只要构造函数被声明为explicit，编译器就不再使用它作为转换操作符，用户只能显式使用构造函数来中止隐式得使用构造函数，而且任何构造函数都可以用来显式地创建临时对象。
+
+通常，除非有明显的理由定义隐式转换，否则单形参构造函数应该为explicit，从而可以避免错误，而且用户可以在转换可行时显式地构造对象。
+
+尽管大多数对象可以通过执行适当的构造函数进行初始化，但是直接初始化简单的非抽象类的数据成员仍是可能的。例如，对于没有定义构造函数并且其全体数据成员均为public的类，可以采用与初始化数组元素相同的方式，并且根据数据成员的声明次序来初始化其成员。
+
+\begin{lstlisting}[language=C++]
+struct Data{
+	int ival;
+	char *ptr;
+};
+// val1.ival = 0
+// val1.ptr = 0
+Data val1 = {0,0};
+// val2.ival = 1024
+// val2.ptr = "This is a test."
+Data val2 = {1024, "This is a test"};
+\end{lstlisting}
+
+不过，显式初始化类类型对象的成员有下面所列的重大缺点，因此定义和使用构造函数几乎总是较好的。
+
+\begin{compactenum}
+\item 要求类的全体数据成员都是public；
+\item 用户负责初始化每个对象的每个成员；
+\item 在增加或删除一个成员时，必须找到所有的初始化并正确更新。
+\end{compactenum}
+
+
+用户为自己定义的类型提供默认构造函数的同时，允许编译器自动执行它，就可以保证每个类对象在初次使用之前被正确地初始化。
+
+
+
+
+
 \section{Inheritence}
 
 
-构造函数是一种在创建新对象值时隐式地调用的过程，通过构造函数可以保证新创建的对象得以正确的初始化。
+
+
+作为一种在创建新对象值时隐式地调用的过程，通过构造函数可以保证新创建的对象得以正确的初始化。
+
+从概念上讲，可以认为构造函数分为两个阶段执行，其中计算阶段由构造函数体中的所有语句组成。
+
+\begin{compactenum}
+\item 初始化阶段
+\item 普通的计算阶段
+\end{compactenum}
+
+不管成员是否在构造函数初始化列表中显式初始化，类类型的数据成员总是在初始化阶段初始化，而且初始化发生在计算阶段开始之前。
+
+在构造函数初始化器中没有显式指定的每个成员，使用与初始化变量相同的规则来进行初始化。其中，数据成员的默认构造函数被调用来执行初始化，但是内置或复合类型的成员的初始值依赖于对象的作用域。
+
+\begin{compactitem}
+\item 在局部作用域中的成员不被初始化；
+\item 在全局作用域中的成员被初始化为0。
+\end{compactitem}
+
+根据数据成员的类型，使用构造函数初始化器可以直接对数据成员进行初始化，但是没有定义初始化器的构造函数在构造函数体中对数据成员进行赋值。
+
+实际上，在没有为类成员提供初始化器时，编译器将会隐式地使用成员类型地默认构造函数。如果没有默认构造函数，那么编译器在尝试使用默认构造函数时就会报错，因此用户必须提供初始化式来对数据成员执行初始化。
+
+另外，有些成员必须在构造函数初始化器中进行初始化，在构造函数体中对它们赋值无效。没有默认构造函数的类类型的成员，以及const或引用类型的成员，都必须在构造函数初始化器中进行初始化。
+
+对非类类型的数据成员进行赋值或使用初始化式在结果和性能上都是等价的，内置类型的成员不进行隐式初始化。
+
+严格来说，初始化和赋值都是低效率的，但是某些数据成员则必须要进行初始化。例如，用户必须对任何const或引用类型成员以及没有默认构造函数的类类型的任何成员使用初始化式。
+
+当对类成员需要指定初始化器时，通过常规地使用构造函数初始化器，就可以避免发生编译时错误。
 
 父类和新创建的子类都有待执行的初始化代码，在创建新对象时都要执行，因此继承使构造函数这个过程变得复杂。
+
+\begin{compactitem}
+\item 普通成员都是给定类的每个对象的组成部分；
+\item static成员不是类类型对象的组成部分，独立于任何对象而存在。
+\end{compactitem}
+
+在C++语言中，static数据成员的类型可以是该成员所属的类类型，但是非static成员被限定声明为其自身类对象的指针或引用。
+
+
+\begin{lstlisting}[language=C++]
+class Bar{
+public:
+	// ...
+private:
+	static Bar mem1;
+	Bar *mem2;
+	Bar mem3; // error
+};
+\end{lstlisting}
+
+static数据成员可以用作默认实参，但是非static数据成员的值不能独立于所属的对象而使用，因此不能用作默认实参。
+
+实际上，如果使用非static数据成员作为默认实参，那么将无法提供对象以获取该成员的值，从而发生错误。
+
 
 
 \subsection{Java}
